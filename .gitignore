@@ -1,1 +1,6 @@
 .codex/
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+dev-server.log

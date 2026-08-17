@@ -6,13 +6,16 @@ The product is designed around one opening question:
 
 > What can I do right now, near me, with other people?
 
-This repository currently contains the SideQuest v4.1 development guide and visual showcase. The guide is the source of truth for building the full monorepo implementation.
+This repository currently contains a frontend-only SideQuest normal-user radar screen, plus the SideQuest v4.1 development guide and visual showcase. The guide remains the source of truth for the full future monorepo implementation.
 
 ## Current Repository Contents
 
 ```text
 sidequest/
 +-- README.md
++-- index.html
++-- package.json
++-- src/                         # frontend-only React app
 +-- sidequest_guide_v41.md       # complete development guide and implementation spec
 +-- sidequest_showcase_v41.jsx   # visual blueprint for user, org, and admin screens
 ```
@@ -95,7 +98,24 @@ The complete stage-by-stage build plan is in [sidequest_guide_v41.md](./sideques
 
 Estimated total: about 14 active development days, or 5 to 7 calendar weeks.
 
-## Getting Started
+## Frontend App
+
+The current runnable app is the first normal-user page from the showcase: the Radar screen. It includes the Juja live pulse, animated radar rings, nearby quest dots, selectable nearest quests, a ghost quest, join state, and the normal-user action bar.
+
+Run it locally:
+
+```bash
+npm install
+npm run dev
+```
+
+Build it:
+
+```bash
+npm run build
+```
+
+## Full Product Implementation
 
 Follow the guide in order. The first implementation stage creates the actual pnpm monorepo:
 
