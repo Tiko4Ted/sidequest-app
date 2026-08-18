@@ -310,7 +310,7 @@ const themeTokens = {
     cardWash: "rgba(255,255,255,0.045)",
     radarRing: "rgba(0,212,170,0.24)",
     radarAxis: "rgba(255,107,43,0.14)",
-    radarLabel: "#8bead8",
+    radarLabel: "#ffffff",
     dotCore: "rgba(7,7,15,0.9)",
     ghost: "#0b0b14",
     bottom: "rgba(7,7,15,0.94)",
@@ -330,7 +330,7 @@ const themeTokens = {
     cardWash: "rgba(21,28,45,0.045)",
     radarRing: "rgba(26,38,64,0.12)",
     radarAxis: "rgba(26,38,64,0.08)",
-    radarLabel: "#909ab3",
+    radarLabel: "#000000",
     dotCore: "rgba(255,255,255,0.94)",
     ghost: "#eef3f8",
     bottom: "rgba(248,251,255,0.94)",
@@ -2372,10 +2372,10 @@ function Radar({
           <SvgText
             key={label}
             x="145"
-            y={140 - [43, 78, 112, 136][index] + 12}
+            y={140 - [43, 78, 112, 136][index] + 10}
             fill={palette.radarLabel}
-            fontSize="11"
-            fontWeight="900"
+            fillOpacity="0.92"
+            fontSize="9"
           >
             {label}
           </SvgText>
@@ -2392,7 +2392,7 @@ function Radar({
                 onPress={() => onSelect(quest.id)}
                 cx={x}
                 cy={y}
-                r={selected ? 21 : 18}
+                r={selected ? 19 : 16}
                 fill={quest.color}
                 fillOpacity={selected ? 0.18 : 0.11}
                 stroke={quest.color}
@@ -2403,7 +2403,7 @@ function Radar({
                 onPress={() => onSelect(quest.id)}
                 cx={x}
                 cy={y}
-                r={selected ? 12 : 10}
+                r={selected ? 10.5 : 9}
                 fill={palette.dotCore}
                 stroke={quest.color}
                 strokeWidth="2"
@@ -2411,9 +2411,9 @@ function Radar({
               <SvgText
                 onPress={() => onSelect(quest.id)}
                 x={x}
-                y={y + 5}
+                y={y + 4}
                 textAnchor="middle"
-                fontSize="14"
+                fontSize="12"
               >
                 {quest.emoji}
               </SvgText>
