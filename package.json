@@ -1,12 +1,17 @@
 {
-  "name": "sidequest-frontend",
+  "name": "sidequest-app",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "dev:phone": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "native": "npm --prefix apps/mobile start",
+    "native:android": "npm --prefix apps/mobile run android",
+    "native:ios": "npm --prefix apps/mobile run ios",
+    "native:check": "npm --prefix apps/mobile run typecheck"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",

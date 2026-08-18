@@ -3,4 +3,7 @@ node_modules/
 dist/
 .vite/
 npm-debug.log*
-dev-server.log
+*dev-server.log
+expo-go.*.log
+.claude/
+CLAUDE.md

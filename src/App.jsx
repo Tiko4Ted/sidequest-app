@@ -1,13 +1,13 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Bell,
   Clock3,
   Crosshair,
   MapPin,
+  Moon,
   Navigation,
   Plus,
-  Radio,
-  Sparkles,
+  Sun,
   Users,
   Zap,
 } from "lucide-react";
@@ -130,6 +130,7 @@ function App() {
   const [selectedId, setSelectedId] = useState("pizza-run");
   const [joined, setJoined] = useState(() => new Set());
   const [freeActive, setFreeActive] = useState(false);
+  const [theme, setTheme] = useState("dark");
 
   const sortedQuests = useMemo(
     () => [...QUESTS].sort((a, b) => a.distance - b.distance),
@@ -151,7 +152,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell theme-${theme}`}>
       <section className="phone" aria-label="SideQuest normal user radar">
         <header className="topbar">
           <div>
@@ -159,6 +160,15 @@ function App() {
             <h1>SideQuest</h1>
           </div>
           <div className="top-actions">
+            <button
+              className="icon-button theme-toggle"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              type="button"
+              aria-pressed={theme === "light"}
+              onClick={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+            >
+              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
             <button className="icon-button" title="Notifications" type="button">
               <Bell size={17} />
             </button>

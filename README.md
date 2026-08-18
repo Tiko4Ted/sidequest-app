@@ -6,16 +6,18 @@ The product is designed around one opening question:
 
 > What can I do right now, near me, with other people?
 
-This repository currently contains a frontend-only SideQuest normal-user radar screen, plus the SideQuest v4.1 development guide and visual showcase. The guide remains the source of truth for the full future monorepo implementation.
+This repository now treats SideQuest as a native mobile app first. The current native app is an Expo React Native implementation of the normal-user Radar screen, with the SideQuest v4.1 guide and JSX showcase kept as source references.
 
 ## Current Repository Contents
 
 ```text
 sidequest/
 +-- README.md
++-- apps/
+|   +-- mobile/                  # Expo React Native native app
 +-- index.html
 +-- package.json
-+-- src/                         # frontend-only React app
++-- src/                         # earlier web prototype/reference
 +-- sidequest_guide_v41.md       # complete development guide and implementation spec
 +-- sidequest_showcase_v41.jsx   # visual blueprint for user, org, and admin screens
 ```
@@ -98,22 +100,25 @@ The complete stage-by-stage build plan is in [sidequest_guide_v41.md](./sideques
 
 Estimated total: about 14 active development days, or 5 to 7 calendar weeks.
 
-## Frontend App
+## Native App
 
-The current runnable app is the first normal-user page from the showcase: the Radar screen. It includes the Juja live pulse, animated radar rings, nearby quest dots, selectable nearest quests, a ghost quest, join state, and the normal-user action bar.
+The primary runnable app is now the Expo React Native app in `apps/mobile`. It implements the first normal-user page from the showcase: the Radar screen. It includes the Juja live pulse, animated radar rings, nearby quest dots, selectable nearest quests, a ghost quest, join state, a light/dark toggle, and the normal-user action bar.
 
-Run it locally:
-
-```bash
-npm install
-npm run dev
-```
-
-Build it:
+Run it for Expo Go:
 
 ```bash
-npm run build
+npm run native
 ```
+
+Then scan the QR code with Expo Go on your phone.
+
+Type-check the native app:
+
+```bash
+npm run native:check
+```
+
+The previous Vite web prototype remains in `src/` only as a reference. New SideQuest UI work should be implemented in the native Expo app.
 
 ## Full Product Implementation
 
