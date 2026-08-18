@@ -534,6 +534,7 @@ export default function App() {
             onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
             onSelectQuest={setSelectedId}
             onOpenDetail={openQuestDetail}
+            onOpenProfile={() => setUserScreen("profile")}
             onJoin={toggleJoin}
           />
         )}
@@ -550,6 +551,7 @@ export default function App() {
             palette={palette}
             onSetHomeTab={setHomeTab}
             onOpenDetail={openQuestDetail}
+            onOpenProfile={() => setUserScreen("profile")}
             onJoin={toggleJoin}
             onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
           />
@@ -636,7 +638,6 @@ function BottomMenu({
     { screen: "chat", icon: "💬", label: "Chat", color: COLORS.teal },
     { screen: "post", icon: "+", label: "Post", color: COLORS.orange },
     { screen: "free", icon: "⚡", label: "Free", color: COLORS.purple },
-    { screen: "profile", icon: "AT", label: "Profile", color: COLORS.gold },
   ];
 
   return (
@@ -704,6 +705,7 @@ function HomeScreen({
   palette,
   onSetHomeTab,
   onOpenDetail,
+  onOpenProfile,
   onJoin,
   onToggleTheme,
 }: {
@@ -717,6 +719,7 @@ function HomeScreen({
   palette: (typeof themeTokens)[ThemeName];
   onSetHomeTab: (tab: HomeTab) => void;
   onOpenDetail: (questId: string) => void;
+  onOpenProfile: () => void;
   onJoin: (questId: string) => void;
   onToggleTheme: () => void;
 }) {
@@ -749,18 +752,22 @@ function HomeScreen({
             onPress={onToggleTheme}
           />
           <CircleButton label="♢" color={palette.text} palette={palette} />
-          <View
-            style={{
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            onPress={onOpenProfile}
+            style={({ pressed }) => ({
               width: 50,
               height: 50,
               borderRadius: 25,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: COLORS.purple,
-            }}
+              opacity: pressed ? 0.72 : 1,
+            })}
           >
             <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>AT</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
 
@@ -858,6 +865,7 @@ function RadarScreen({
   onToggleTheme,
   onSelectQuest,
   onOpenDetail,
+  onOpenProfile,
   onJoin,
 }: {
   quests: Quest[];
@@ -874,6 +882,7 @@ function RadarScreen({
   onToggleTheme: () => void;
   onSelectQuest: (questId: string) => void;
   onOpenDetail: (questId: string) => void;
+  onOpenProfile: () => void;
   onJoin: (questId: string) => void;
 }) {
   return (
@@ -905,18 +914,22 @@ function RadarScreen({
             onPress={onToggleTheme}
           />
           <CircleButton label="♢" color={palette.text} palette={palette} />
-          <View
-            style={{
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open profile"
+            onPress={onOpenProfile}
+            style={({ pressed }) => ({
               width: 50,
               height: 50,
               borderRadius: 25,
               alignItems: "center",
               justifyContent: "center",
               backgroundColor: COLORS.purple,
-            }}
+              opacity: pressed ? 0.72 : 1,
+            })}
           >
             <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>AT</Text>
-          </View>
+          </Pressable>
         </View>
       </View>
 
