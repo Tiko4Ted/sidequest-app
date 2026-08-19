@@ -492,6 +492,7 @@ function RadarScreen({
   onToggleTheme: () => void;
 }) {
   const spin = useRef(new Animated.Value(0)).current;
+  const centerPulse = useRef(new Animated.Value(0)).current;
   const palette = RADAR_THEMES[theme];
   const radarSize = 274;
   const radarViewBoxSize = 230;
@@ -542,6 +543,23 @@ function RadarScreen({
 
     return () => animations.forEach((animation) => animation.stop());
   }, [pulseValues]);
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(centerPulse, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.delay(520),
+      ]),
+    );
+
+    loop.start();
+    return () => loop.stop();
+  }, [centerPulse]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
@@ -594,6 +612,31 @@ function RadarScreen({
               </SvgText>
             ))}
           </Svg>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: (110 + radarViewBoxInset) * radarScale - 10,
+              top: (110 + radarViewBoxInset) * radarScale - 10,
+              width: 20,
+              height: 20,
+              borderRadius: 10,
+              borderWidth: 1.5,
+              borderColor: OR,
+              opacity: centerPulse.interpolate({
+                inputRange: [0, 0.18, 1],
+                outputRange: [0, 0.62, 0],
+              }),
+              transform: [
+                {
+                  scale: centerPulse.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.45, 3.5],
+                  }),
+                },
+              ],
+            }}
+          />
           {dots.map((dot, index) => {
             const radians = (dot.angle * Math.PI) / 180;
             const x = 110 + dot.radius * 0.9 * Math.sin(radians);
