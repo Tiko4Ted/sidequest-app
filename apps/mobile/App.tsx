@@ -8,7 +8,7 @@ import {
   Nunito_800ExtraBold,
 } from "@expo-google-fonts/nunito";
 import { Syne_700Bold, Syne_800ExtraBold } from "@expo-google-fonts/syne";
-import React, { useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
@@ -88,6 +88,15 @@ const displayFont = "Syne_800ExtraBold";
 const displayFontAlt = "Syne_700Bold";
 const bodyFont = "Nunito_600SemiBold";
 const bodyBold = "Nunito_800ExtraBold";
+const ThemeContext = createContext<(typeof RADAR_THEMES)[ThemeName]>(RADAR_THEMES.dark);
+
+function useAppPalette() {
+  return useContext(ThemeContext);
+}
+
+function themeOverlayColor(palette: (typeof RADAR_THEMES)[ThemeName]) {
+  return palette.bg === RADAR_THEMES.light.bg ? "rgba(246,247,251,0.92)" : "rgba(7,7,15,0.93)";
+}
 
 function AppText({
   children,
@@ -98,8 +107,10 @@ function AppText({
   style?: object;
   display?: boolean;
 }) {
+  const palette = useAppPalette();
+
   return (
-    <Text style={[{ fontFamily: display ? displayFont : bodyFont, color: TX }, style]}>
+    <Text style={[{ fontFamily: display ? displayFont : bodyFont, color: palette.text }, style]}>
       {children}
     </Text>
   );
@@ -179,6 +190,7 @@ function Logo() {
 }
 
 function EnergyBar({ level, color = OR }: { level: number; color?: string }) {
+  const palette = useAppPalette();
   const label = ["", "Low", "Med", "High", ""][level] || "High";
 
   return (
@@ -277,11 +289,14 @@ function ThemeToggle({
 
 function LiveStrip({
   compact = false,
-  theme = RADAR_THEMES.dark,
+  theme,
 }: {
   compact?: boolean;
   theme?: (typeof RADAR_THEMES)[ThemeName];
 }) {
+  const appTheme = useAppPalette();
+  const activeTheme = theme ?? appTheme;
+
   return (
     <View
       style={{
@@ -290,13 +305,13 @@ function LiveStrip({
         gap: 5,
         paddingVertical: compact ? 3 : 4,
         paddingHorizontal: 14,
-        backgroundColor: theme.surface,
+        backgroundColor: activeTheme.surface,
         borderBottomWidth: 1,
-        borderBottomColor: theme.border,
+        borderBottomColor: activeTheme.border,
       }}
     >
       <View style={{ width: compact ? 4 : 5, height: compact ? 4 : 5, borderRadius: 3, backgroundColor: OR }} />
-      <AppText style={{ color: theme.muted2, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
+      <AppText style={{ color: activeTheme.muted2, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
         <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
           23 people
         </AppText>{" "}
@@ -306,7 +321,7 @@ function LiveStrip({
         )}
       </AppText>
       {!compact && (
-        <AppText style={{ marginLeft: "auto", color: theme.muted, fontFamily: bodyBold, fontSize: 8 }}>
+        <AppText style={{ marginLeft: "auto", color: activeTheme.muted, fontFamily: bodyBold, fontSize: 8 }}>
           Juja
         </AppText>
       )}
@@ -317,16 +332,19 @@ function LiveStrip({
 function ScreenFrame({
   children,
   scroll = false,
-  backgroundColor = BG,
+  backgroundColor,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   backgroundColor?: string;
 }) {
+  const palette = useAppPalette();
+  const resolvedBackground = backgroundColor ?? palette.bg;
+
   if (scroll) {
     return (
       <ScrollView
-        style={{ flex: 1, backgroundColor }}
+        style={{ flex: 1, backgroundColor: resolvedBackground }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 26, paddingHorizontal: 12, paddingBottom: 10 }}
       >
@@ -335,7 +353,7 @@ function ScreenFrame({
     );
   }
 
-  return <View style={{ flex: 1, backgroundColor, paddingTop: 26 }}>{children}</View>;
+  return <View style={{ flex: 1, backgroundColor: resolvedBackground, paddingTop: 26 }}>{children}</View>;
 }
 
 export default function App() {
@@ -354,34 +372,38 @@ export default function App() {
     return <View style={{ flex: 1, backgroundColor: BG }} />;
   }
 
-  const activeTheme = screen === "Radar" ? RADAR_THEMES[theme] : RADAR_THEMES.dark;
+  const activeTheme = RADAR_THEMES[theme];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: activeTheme.bg }}>
-      <StatusBar style={screen === "Radar" && theme === "light" ? "dark" : "light"} />
-      <View style={{ flex: 1, backgroundColor: activeTheme.bg }}>
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: NAV_HEIGHT }}>
-          {screen === "Radar" && (
-            <RadarScreen
-              nav={setScreen}
-              theme={theme}
-              onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-            />
-          )}
-          {screen === "Home" && <HomeScreen nav={setScreen} />}
-          {screen === "Detail" && <DetailScreen nav={setScreen} />}
-          {screen === "Chat" && <ChatScreen nav={setScreen} />}
-          {screen === "Post" && <PostScreen nav={setScreen} />}
-          {screen === "I'm Free" && <FreeScreen nav={setScreen} />}
-          {screen === "Profile" && <ProfileScreen />}
+    <ThemeContext.Provider value={activeTheme}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: activeTheme.bg }}>
+        <StatusBar style={theme === "light" ? "dark" : "light"} />
+        <View style={{ flex: 1, backgroundColor: activeTheme.bg }}>
+          <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: NAV_HEIGHT }}>
+            {screen === "Radar" && (
+              <RadarScreen
+                nav={setScreen}
+                theme={theme}
+                onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+              />
+            )}
+            {screen === "Home" && <HomeScreen nav={setScreen} />}
+            {screen === "Detail" && <DetailScreen nav={setScreen} />}
+            {screen === "Chat" && <ChatScreen nav={setScreen} />}
+            {screen === "Post" && <PostScreen nav={setScreen} />}
+            {screen === "I'm Free" && <FreeScreen nav={setScreen} />}
+            {screen === "Profile" && <ProfileScreen />}
+          </View>
+          <BottomNav screen={screen} nav={setScreen} />
         </View>
-        <BottomNav screen={screen} nav={setScreen} />
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </ThemeContext.Provider>
   );
 }
 
 function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
+
   return (
     <View
       style={{
@@ -390,9 +412,9 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
         left: 0,
         right: 0,
         height: NAV_HEIGHT,
-        backgroundColor: "#09090fee",
+        backgroundColor: palette.nav,
         borderTopWidth: 1,
-        borderTopColor: "rgba(255,255,255,0.08)",
+        borderTopColor: palette.navBorder,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-around",
@@ -475,7 +497,7 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
           height: 3.5,
           marginLeft: -45,
           borderRadius: 2,
-          backgroundColor: "#1e1e32",
+          backgroundColor: palette.surface3,
         }}
       />
     </View>
@@ -791,11 +813,11 @@ function RadarScreen({
         >
           <AppText style={{ fontSize: 16, opacity: 0.4 }}>🚲</AppText>
           <View style={{ flex: 1 }}>
-            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride · ended 22 min ago</AppText>
-            <AppText style={{ color: MT, fontSize: 8 }}>5 people · dissolved</AppText>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride · ended 22 min ago</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 8 }}>5 people · dissolved</AppText>
           </View>
           <View style={{ backgroundColor: palette.surface2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
-            <AppText style={{ color: MT, fontSize: 8 }}>ghost</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 8 }}>ghost</AppText>
           </View>
         </View>
       </ScrollView>
@@ -804,6 +826,7 @@ function RadarScreen({
 }
 
 function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
   const ticker = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -852,12 +875,12 @@ function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
         </View>
       </View>
       <LiveStrip compact />
-      <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: S3 }}>
+      <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
         <View style={{ paddingVertical: 5, paddingHorizontal: 9, borderBottomWidth: 2, borderBottomColor: OR }}>
           <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 10 }}>Quests</AppText>
         </View>
         <View style={{ paddingVertical: 5, paddingHorizontal: 9 }}>
-          <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Community</AppText>
+          <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 10 }}>Community</AppText>
         </View>
       </View>
       <ScrollView
@@ -870,9 +893,9 @@ function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
         ))}
         <View
           style={{
-            backgroundColor: "#0b0b12",
+            backgroundColor: palette.ghost,
             borderWidth: 1,
-            borderColor: "#ffffff08",
+            borderColor: palette.softBorder,
             borderRadius: 12,
             paddingVertical: 8,
             paddingHorizontal: 10,
@@ -882,11 +905,11 @@ function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <AppText style={{ fontSize: 16, opacity: 0.35 }}>🚲</AppText>
             <View style={{ flex: 1 }}>
-              <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride ended 25 min ago</AppText>
-              <AppText style={{ color: MT, fontSize: 8 }}>5 people · dissolved</AppText>
+              <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride ended 25 min ago</AppText>
+              <AppText style={{ color: palette.muted, fontSize: 8 }}>5 people · dissolved</AppText>
             </View>
-            <View style={{ backgroundColor: S2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
-              <AppText style={{ color: MT, fontSize: 8 }}>ghost</AppText>
+            <View style={{ backgroundColor: palette.surface2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
+              <AppText style={{ color: palette.muted, fontSize: 8 }}>ghost</AppText>
             </View>
           </View>
         </View>
@@ -911,13 +934,15 @@ function QuestCard({
   };
   onPress: () => void;
 }) {
+  const palette = useAppPalette();
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: quest.full ? "#0e0e18" : S1,
+        backgroundColor: quest.full ? palette.ghost : palette.surface,
         borderWidth: 1,
-        borderColor: quest.full ? "#ffffff12" : "#ffffff10",
+        borderColor: quest.full ? palette.softBorder : palette.border,
         borderRadius: 14,
         padding: 10,
         overflow: "hidden",
@@ -928,8 +953,8 @@ function QuestCard({
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
         <AppText style={{ fontSize: 24, lineHeight: 27 }}>{quest.emoji}</AppText>
         {quest.full ? (
-          <View style={{ backgroundColor: "#ffffff12", borderColor: "#ffffff20", borderWidth: 1, borderRadius: 7, paddingVertical: 2, paddingHorizontal: 7 }}>
-            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 8.5 }}>FULL</AppText>
+          <View style={{ backgroundColor: palette.surface2, borderColor: palette.border, borderWidth: 1, borderRadius: 7, paddingVertical: 2, paddingHorizontal: 7 }}>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 8.5 }}>FULL</AppText>
           </View>
         ) : (
           <View style={{ backgroundColor: `${TL}18`, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
@@ -937,10 +962,10 @@ function QuestCard({
           </View>
         )}
       </View>
-      <AppText display style={{ color: quest.full ? MT : TX, fontFamily: displayFontAlt, fontSize: 12, marginBottom: 1 }}>
+      <AppText display style={{ color: quest.full ? palette.muted : palette.text, fontFamily: displayFontAlt, fontSize: 12, marginBottom: 1 }}>
         {quest.title}
       </AppText>
-      <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 6 }}>⌖ {quest.place}</AppText>
+      <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 6 }}>⌖ {quest.place}</AppText>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: quest.full ? 0 : 5 }}>
         <View style={{ flexDirection: "row", gap: 3, alignItems: "center" }}>
           {Array.from({ length: Math.min(quest.max, 5) }).map((_, index) => (
@@ -950,19 +975,19 @@ function QuestCard({
                 width: 6,
                 height: 6,
                 borderRadius: 3,
-                backgroundColor: index < quest.members ? OR : S3,
+                backgroundColor: index < quest.members ? OR : palette.surface3,
                 borderWidth: 1,
                 borderColor: index < quest.members ? OR : "#ffffff12",
               }}
             />
           ))}
-          <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 7.5, marginLeft: 2 }}>
+          <AppText style={{ color: palette.muted2, fontFamily: bodyBold, fontSize: 7.5, marginLeft: 2 }}>
             {quest.members}/{quest.max}
           </AppText>
         </View>
         {quest.full ? (
-          <View style={{ backgroundColor: S2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 9 }}>
-            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 8.5 }}>Create similar</AppText>
+          <View style={{ backgroundColor: palette.surface2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 9 }}>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 8.5 }}>Create similar</AppText>
           </View>
         ) : (
           <View style={{ backgroundColor: OR, borderRadius: 7, paddingVertical: 4, paddingHorizontal: 10 }}>
@@ -976,6 +1001,8 @@ function QuestCard({
 }
 
 function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
+
   return (
     <ScreenFrame scroll>
       <View style={{ marginHorizontal: -12, marginTop: -26, paddingTop: 32, paddingHorizontal: 13, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: S3 }}>
@@ -984,9 +1011,9 @@ function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
           <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 9, marginBottom: 8 }}>← Back</AppText>
         </Pressable>
         <AppText style={{ fontSize: 38, lineHeight: 42, marginBottom: 6 }}>🚲</AppText>
-        <AppText display style={{ color: TX, fontSize: 20, marginBottom: 2 }}>Bike Ride</AppText>
-        <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ Juja Farm Road area</AppText>
-        <AppText style={{ color: MT2, fontFamily: "Nunito_400Regular", fontSize: 8, marginTop: 1, fontStyle: "italic" }}>
+        <AppText display style={{ color: palette.text, fontSize: 20, marginBottom: 2 }}>Bike Ride</AppText>
+        <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ Juja Farm Road area</AppText>
+        <AppText style={{ color: palette.muted2, fontFamily: "Nunito_400Regular", fontSize: 8, marginTop: 1, fontStyle: "italic" }}>
           Exact location unlocks when you join
         </AppText>
       </View>
@@ -994,31 +1021,31 @@ function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
         <View style={{ flexDirection: "row", gap: 5, marginBottom: 9 }}>
           {[
             { label: "Squad", value: "2/6", color: OR },
-            { label: "Expires", value: "18h", color: TX },
+            { label: "Expires", value: "18h", color: palette.text },
             { label: "Starts", value: "17:30", color: TL },
           ].map((item) => (
-            <View key={item.label} style={{ flex: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 10, paddingVertical: 7, paddingHorizontal: 6 }}>
-              <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</AppText>
+            <View key={item.label} style={{ flex: 1, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 6 }}>
+              <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</AppText>
               <AppText display style={{ color: item.color, fontFamily: displayFontAlt, fontSize: 14 }}>{item.value}</AppText>
             </View>
           ))}
         </View>
-        <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 8 }}>
-          <AppText style={{ color: "#9090b0", fontSize: 9, lineHeight: 15 }}>Casual evening ride through Juja Farm. Any bike works.</AppText>
+        <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 8 }}>
+          <AppText style={{ color: palette.muted2, fontSize: 9, lineHeight: 15 }}>Casual evening ride through Juja Farm. Any bike works.</AppText>
         </View>
-        <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Hype — last 2h</AppText>
+        <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Hype — last 2h</AppText>
         <View style={{ flexDirection: "row", gap: 4, marginBottom: 8 }}>
           {[
             { emoji: "🔥", recent: 3, total: 7, color: OR, pct: "80%" },
             { emoji: "👀", recent: 6, total: 11, color: TL, pct: "100%" },
             { emoji: "🚀", recent: 1, total: 5, color: PU, pct: "30%" },
           ].map((hype) => (
-            <View key={hype.emoji} style={{ flex: 1, backgroundColor: S2, borderWidth: 1, borderColor: `${hype.color}30`, borderRadius: 9, paddingVertical: 5, alignItems: "center", overflow: "hidden" }}>
+            <View key={hype.emoji} style={{ flex: 1, backgroundColor: palette.surface2, borderWidth: 1, borderColor: `${hype.color}30`, borderRadius: 9, paddingVertical: 5, alignItems: "center", overflow: "hidden" }}>
               <View style={{ position: "absolute", bottom: 0, left: 0, width: hype.pct as "80%" | "100%" | "30%", height: 2, backgroundColor: hype.color }} />
               <AppText style={{ fontSize: 14, marginBottom: 1 }}>{hype.emoji}</AppText>
               <View style={{ flexDirection: "row", alignItems: "baseline", gap: 1 }}>
                 <AppText style={{ color: hype.color, fontFamily: bodyBold, fontSize: 11 }}>{hype.recent}</AppText>
-                <AppText style={{ color: MT, fontSize: 7.5 }}>/{hype.total}</AppText>
+                <AppText style={{ color: palette.muted, fontSize: 7.5 }}>/{hype.total}</AppText>
               </View>
             </View>
           ))}
@@ -1026,15 +1053,15 @@ function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
         <View style={{ marginBottom: 8 }}>
           <EnergyBar level={3} />
         </View>
-        <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 8 }}>
+        <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 8 }}>
           <AppText style={{ fontSize: 18, marginBottom: 2 }}>💬</AppText>
-          <AppText display style={{ color: TX, fontSize: 10, marginBottom: 3 }}>Chat unlocks at 3 members</AppText>
+          <AppText display style={{ color: palette.text, fontSize: 10, marginBottom: 3 }}>Chat unlocks at 3 members</AppText>
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, marginBottom: 2 }}>
             {[0, 1, 2].map((index) => (
               <View key={index} style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: index < 2 ? OR : S3, borderWidth: 1.5, borderColor: index < 2 ? OR : "#ffffff16" }} />
             ))}
           </View>
-          <AppText style={{ color: MT, fontSize: 7.5 }}>1 more needed</AppText>
+          <AppText style={{ color: palette.muted, fontSize: 7.5 }}>1 more needed</AppText>
         </View>
         <Pressable onPress={() => nav("Chat")} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
           <AppText display style={{ color: "white", fontSize: 13 }}>⚡ Join Quest</AppText>
@@ -1045,6 +1072,7 @@ function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
 }
 
 function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
   const messages = [
     { user: "Alex M.", text: "Main stage at 5pm?" },
     { user: "Joy K.", text: "Works! Which route?" },
@@ -1061,8 +1089,8 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
           <AppText style={{ fontSize: 20 }}>🚲</AppText>
           <View style={{ flex: 1 }}>
-            <AppText display style={{ color: TX, fontSize: 12 }}>Bike Ride · dissolves in 1h 44m</AppText>
-            <AppText style={{ color: MT, fontSize: 8.5 }}>⌖ Main Stage · 3/6</AppText>
+            <AppText display style={{ color: palette.text, fontSize: 12 }}>Bike Ride · dissolves in 1h 44m</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 8.5 }}>⌖ Main Stage · 3/6</AppText>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#ff6b2b14", borderWidth: 1, borderColor: "#ff6b2b25", borderRadius: 7, paddingVertical: 2, paddingHorizontal: 6 }}>
             <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: OR }} />
@@ -1070,16 +1098,16 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
           </View>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, backgroundColor: S1, borderBottomWidth: 1, borderBottomColor: S3 }} contentContainerStyle={{ paddingVertical: 4, paddingHorizontal: 8, gap: 3 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, backgroundColor: palette.surface, borderBottomWidth: 1, borderBottomColor: S3 }} contentContainerStyle={{ paddingVertical: 4, paddingHorizontal: 8, gap: 3 }}>
         {[
           { name: "Alex M.", status: "Already there", color: OR },
           { name: "Joy K.", status: "On my way", color: TL },
           { name: "You", status: "On my way", color: PU },
         ].map((member) => (
-          <View key={member.name} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: S2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 6 }}>
+          <View key={member.name} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: palette.surface2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 6 }}>
             <Avatar name={member.name} size={13} />
             <View>
-              <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 7 }}>{member.name === "You" ? "You" : member.name.split(" ")[0]}</AppText>
+              <AppText style={{ color: palette.muted2, fontFamily: bodyBold, fontSize: 7 }}>{member.name === "You" ? "You" : member.name.split(" ")[0]}</AppText>
               <AppText style={{ color: member.color, fontFamily: bodyBold, fontSize: 6.5 }}>{member.status}</AppText>
             </View>
           </View>
@@ -1093,7 +1121,7 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
             <View key={`${message.user}-${index}`} style={{ flexDirection: mine ? "row-reverse" : "row", gap: 4, alignItems: "flex-end" }}>
               {!mine && <Avatar name={message.user} size={18} />}
               <View style={{ maxWidth: "78%" }}>
-                {!mine && <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, marginBottom: 2 }}>{message.user}</AppText>}
+                {!mine && <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5, marginBottom: 2 }}>{message.user}</AppText>}
                 <View style={{ backgroundColor: mine ? OR : S2, borderRadius: 10, borderBottomRightRadius: mine ? 3 : 10, borderBottomLeftRadius: mine ? 10 : 3, paddingVertical: 5, paddingHorizontal: 8 }}>
                   <AppText style={{ color: "white", fontSize: 10, lineHeight: 15 }}>{message.text}</AppText>
                 </View>
@@ -1106,15 +1134,15 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
         <AppText style={{ fontSize: 13 }}>☎</AppText>
         <View style={{ flex: 1 }}>
           <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>Share contact before chat closes</AppText>
-          <AppText style={{ color: MT, fontSize: 7.5 }}>28 min · Chat dissolves when squad disbands</AppText>
+          <AppText style={{ color: palette.muted, fontSize: 7.5 }}>28 min · Chat dissolves when squad disbands</AppText>
         </View>
         <View style={{ backgroundColor: "#a78bfa18", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
           <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8 }}>Share</AppText>
         </View>
       </View>
       <View style={{ paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: S3, flexDirection: "row", gap: 4 }}>
-        <View style={{ flex: 1, backgroundColor: S2, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 }}>
-          <AppText style={{ color: MT, fontSize: 9.5 }}>Coordinate — where are you meeting?</AppText>
+        <View style={{ flex: 1, backgroundColor: palette.surface2, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 }}>
+          <AppText style={{ color: palette.muted, fontSize: 9.5 }}>Coordinate — where are you meeting?</AppText>
         </View>
         <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: OR, alignItems: "center", justifyContent: "center" }}>
           <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 11 }}>➤</AppText>
@@ -1125,12 +1153,14 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
 }
 
 function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
+
   return (
     <ScreenFrame scroll>
-      <AppText display style={{ color: TX, fontSize: 19, marginBottom: 2 }}>
+      <AppText display style={{ color: palette.text, fontSize: 19, marginBottom: 2 }}>
         Post a <AppText display style={{ color: OR, fontSize: 19 }}>Quest</AppText>
       </AppText>
-      <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 10 }}>Visible to people near you in 30 seconds.</AppText>
+      <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 10 }}>Visible to people near you in 30 seconds.</AppText>
       <SectionLabel>Quick start</SectionLabel>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
         {[
@@ -1159,7 +1189,7 @@ function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
         <StepperButton label="−" />
         <View style={{ flex: 1, alignItems: "center" }}>
           <AppText display style={{ color: OR, fontSize: 24 }}>10</AppText>
-          <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5 }}>max</AppText>
+          <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5 }}>max</AppText>
         </View>
         <StepperButton label="+" />
       </View>
@@ -1171,39 +1201,41 @@ function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
 }
 
 function FreeScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const palette = useAppPalette();
+
   return (
     <ScreenFrame scroll>
       <View style={{ alignItems: "center", paddingVertical: 14, paddingHorizontal: 8, backgroundColor: "#a78bfa0e", borderRadius: 14, borderWidth: 1, borderColor: `${PU}35`, marginBottom: 10 }}>
         <AppText style={{ fontSize: 34, marginBottom: 5 }}>⚡</AppText>
-        <AppText display style={{ color: TX, fontSize: 17, marginBottom: 2 }}>I'm Free Mode</AppText>
-        <AppText style={{ color: MT2, fontSize: 9, lineHeight: 14, textAlign: "center" }}>No plan. No activity.{"\n"}People within 1km see you're free.</AppText>
+        <AppText display style={{ color: palette.text, fontSize: 17, marginBottom: 2 }}>I'm Free Mode</AppText>
+        <AppText style={{ color: palette.muted2, fontSize: 9, lineHeight: 14, textAlign: "center" }}>No plan. No activity.{"\n"}People within 1km see you're free.</AppText>
       </View>
-      <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff12", borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 8 }}>
-        <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 4 }}>
+      <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 8 }}>
+        <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 4 }}>
           Next broadcast in <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>4h 22m</AppText>
         </AppText>
-        <View style={{ height: 4, backgroundColor: S3, borderRadius: 2, overflow: "hidden" }}>
+        <View style={{ height: 4, backgroundColor: palette.surface3, borderRadius: 2, overflow: "hidden" }}>
           <View style={{ width: "27%", height: "100%", backgroundColor: PU, borderRadius: 2 }} />
         </View>
       </View>
       <View style={{ backgroundColor: "#a78bfa10", borderWidth: 1.5, borderColor: `${PU}45`, borderRadius: 12, padding: 10, marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-          <AppText display style={{ color: TX, fontSize: 11 }}>Broadcasting ⚡</AppText>
+          <AppText display style={{ color: palette.text, fontSize: 11 }}>Broadcasting ⚡</AppText>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
             <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: PU }} />
             <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 7.5 }}>LIVE</AppText>
           </View>
         </View>
-        <AppText style={{ color: MT2, fontSize: 8, marginBottom: 6 }}>⌖ 1km · Expires 1h 54m · 2 replies</AppText>
+        <AppText style={{ color: palette.muted2, fontSize: 8, marginBottom: 6 }}>⌖ 1km · Expires 1h 54m · 2 replies</AppText>
         {[
           { name: "Ciku N.", text: "☕ Coffee sounds good?" },
           { name: "Brian T.", text: "Football? Also free!" },
         ].map((reply) => (
-          <View key={reply.name} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: S2, borderRadius: 8, paddingVertical: 5, paddingHorizontal: 7, marginBottom: 4 }}>
+          <View key={reply.name} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: palette.surface2, borderRadius: 8, paddingVertical: 5, paddingHorizontal: 7, marginBottom: 4 }}>
             <Avatar name={reply.name} size={20} />
             <View style={{ flex: 1 }}>
-              <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 9 }}>{reply.name}</AppText>
-              <AppText style={{ color: MT2, fontSize: 9 }}>{reply.text}</AppText>
+              <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 9 }}>{reply.name}</AppText>
+              <AppText style={{ color: palette.muted2, fontSize: 9 }}>{reply.text}</AppText>
             </View>
             <Pressable onPress={() => nav("Post")} style={{ backgroundColor: "#a78bfa12", borderWidth: 1, borderColor: `${PU}40`, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
               <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8 }}>Reply</AppText>
@@ -1211,14 +1243,15 @@ function FreeScreen({ nav }: { nav: (screen: Screen) => void }) {
           </View>
         ))}
       </View>
-      <View style={{ backgroundColor: S2, borderRadius: 11, padding: 11, alignItems: "center", opacity: 0.6 }}>
-        <AppText display style={{ color: MT, fontSize: 11 }}>⏱ Available in 4h 22m</AppText>
+      <View style={{ backgroundColor: palette.surface2, borderRadius: 11, padding: 11, alignItems: "center", opacity: 0.6 }}>
+        <AppText display style={{ color: palette.muted, fontSize: 11 }}>⏱ Available in 4h 22m</AppText>
       </View>
     </ScreenFrame>
   );
 }
 
 function ProfileScreen() {
+  const palette = useAppPalette();
   const cards = [
     { emoji: "🚲", title: "Bike Ride", vibe: "🔥", gold: true, shared: true },
     { emoji: "🎲", title: "Games", vibe: "✨", gold: false, shared: true },
@@ -1229,15 +1262,15 @@ function ProfileScreen() {
   return (
     <ScreenFrame>
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 10 }}>
-        <View style={{ paddingTop: 28, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: S3, alignItems: "center", backgroundColor: "#0b0911" }}>
+        <View style={{ paddingTop: 28, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: palette.border, alignItems: "center", backgroundColor: palette.surface }}>
           <View style={{ position: "relative", marginBottom: 6 }}>
             <Avatar name="AT" size={46} />
             <View style={{ position: "absolute", bottom: -2, right: -2, backgroundColor: YL, borderRadius: 8, width: 16, height: 16, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: BG }}>
               <AppText style={{ color: "#08080f", fontFamily: bodyBold, fontSize: 8 }}>7</AppText>
             </View>
           </View>
-          <AppText display style={{ color: TX, fontSize: 14 }}>Atacama</AppText>
-          <AppText style={{ color: MT, fontSize: 8, marginBottom: 6 }}>Juja · Urban Explorer</AppText>
+          <AppText display style={{ color: palette.text, fontSize: 14 }}>Atacama</AppText>
+          <AppText style={{ color: palette.muted, fontSize: 8, marginBottom: 6 }}>Juja · Urban Explorer</AppText>
           <View style={{ flexDirection: "row", justifyContent: "center", gap: 5 }}>
             <Badge text="7-day streak" color={YL} emoji="🔥" />
             <Badge text="Fast Joiner" color={PU} emoji="⚡" />
@@ -1250,9 +1283,9 @@ function ProfileScreen() {
               { value: "4", label: "Vibe", color: YL },
               { value: "88", label: "Energy", color: TL },
             ].map((stat) => (
-              <View key={stat.label} style={{ flex: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 8, paddingVertical: 6, alignItems: "center" }}>
+              <View key={stat.label} style={{ flex: 1, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 8, paddingVertical: 6, alignItems: "center" }}>
                 <AppText display style={{ color: stat.color, fontSize: 12 }}>{stat.value}</AppText>
-                <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 6.5, marginTop: 1 }}>{stat.label}</AppText>
+                <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 6.5, marginTop: 1 }}>{stat.label}</AppText>
               </View>
             ))}
           </View>
@@ -1268,24 +1301,24 @@ function ProfileScreen() {
               ["✨", "Vibe"],
               ["?", "?"],
             ].map(([emoji, label], index) => (
-              <View key={label} style={{ width: 36, alignItems: "center", gap: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#fbbf2430", borderRadius: 8, paddingVertical: 4, opacity: index >= 6 ? 0.3 : 1 }}>
+              <View key={label} style={{ width: 36, alignItems: "center", gap: 1, backgroundColor: palette.surface, borderWidth: 1, borderColor: "#fbbf2430", borderRadius: 8, paddingVertical: 4, opacity: index >= 6 ? 0.3 : 1 }}>
                 <AppText style={{ fontSize: 13 }}>{emoji}</AppText>
-                <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 5.5, textAlign: "center" }}>{label}</AppText>
+                <AppText style={{ color: palette.muted2, fontFamily: bodyBold, fontSize: 5.5, textAlign: "center" }}>{label}</AppText>
               </View>
             ))}
           </View>
           <SectionLabel>Story Cards</SectionLabel>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
             {cards.map((card) => (
-              <View key={card.title} style={{ width: "49%", backgroundColor: card.gold ? `${YL}12` : card.shared ? S1 : "#0a0a12", borderWidth: 1, borderColor: card.gold ? `${YL}40` : card.shared ? S3 : "#ffffff08", borderRadius: 10, padding: 7, alignItems: "center", overflow: "hidden" }}>
+              <View key={card.title} style={{ width: "49%", backgroundColor: card.gold ? `${YL}12` : card.shared ? palette.surface : palette.ghost, borderWidth: 1, borderColor: card.gold ? `${YL}40` : card.shared ? palette.border : palette.softBorder, borderRadius: 10, padding: 7, alignItems: "center", overflow: "hidden" }}>
                 {!card.shared && (
-                  <View style={{ position: "absolute", inset: 0, backgroundColor: "#07070fee", zIndex: 2, alignItems: "center", justifyContent: "center", gap: 1 }}>
+                  <View style={{ position: "absolute", inset: 0, backgroundColor: themeOverlayColor(palette), zIndex: 2, alignItems: "center", justifyContent: "center", gap: 1 }}>
                     <AppText style={{ fontSize: 10 }}>🔒</AppText>
-                    <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 6.5, textAlign: "center", paddingHorizontal: 3 }}>Quest together first</AppText>
+                    <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 6.5, textAlign: "center", paddingHorizontal: 3 }}>Quest together first</AppText>
                   </View>
                 )}
                 <AppText style={{ fontSize: 18, marginBottom: 2 }}>{card.emoji}</AppText>
-                <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 8.5, marginBottom: 1 }}>{card.title}</AppText>
+                <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 8.5, marginBottom: 1 }}>{card.title}</AppText>
                 <AppText style={{ fontSize: 11 }}>{card.vibe}</AppText>
               </View>
             ))}
@@ -1295,11 +1328,11 @@ function ProfileScreen() {
             ["Alex M.", "4"],
             ["Joy K.", "3"],
           ].map(([name, count]) => (
-            <View key={name} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: S3 }}>
+            <View key={name} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: palette.border }}>
               <Avatar name={name} size={22} />
               <View style={{ flex: 1 }}>
-                <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 9.5 }}>{name}</AppText>
-                <AppText style={{ color: MT, fontSize: 7.5 }}>Quested {count}x</AppText>
+                <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 9.5 }}>{name}</AppText>
+                <AppText style={{ color: palette.muted, fontSize: 7.5 }}>Quested {count}x</AppText>
               </View>
               <View style={{ backgroundColor: "#ff6b2b14", borderWidth: 1, borderColor: "#ff6b2b28", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
                 <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 7.5 }}>Quest again</AppText>
@@ -1313,18 +1346,22 @@ function ProfileScreen() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
+  const palette = useAppPalette();
+
   return (
-    <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>
+    <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>
       {children}
     </AppText>
   );
 }
 
 function Field({ label, value, color }: { label: string; value: string; color?: string }) {
+  const palette = useAppPalette();
+
   return (
     <View>
       <SectionLabel>{label}</SectionLabel>
-      <View style={{ backgroundColor: S1, borderWidth: 1.5, borderColor: color || "#ffffff12", borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9 }}>
+      <View style={{ backgroundColor: palette.surface, borderWidth: 1.5, borderColor: color || "#ffffff12", borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9 }}>
         <AppText style={{ color: color ? TX : MT, fontSize: 10.5 }}>{value}</AppText>
       </View>
     </View>
@@ -1332,9 +1369,11 @@ function Field({ label, value, color }: { label: string; value: string; color?: 
 }
 
 function StepperButton({ label }: { label: string }) {
+  const palette = useAppPalette();
+
   return (
-    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: S1, borderWidth: 1.5, borderColor: "#ffffff12", alignItems: "center", justifyContent: "center" }}>
-      <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 16 }}>{label}</AppText>
+    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, alignItems: "center", justifyContent: "center" }}>
+      <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 16 }}>{label}</AppText>
     </View>
   );
 }
