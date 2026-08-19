@@ -495,8 +495,8 @@ function RadarScreen({
   const centerPulse = useRef(new Animated.Value(0)).current;
   const palette = RADAR_THEMES[theme];
   const radarSize = 274;
-  const radarViewBoxSize = 230;
-  const radarViewBoxInset = 5;
+  const radarViewBoxSize = 270;
+  const radarViewBoxInset = 25;
   const radarScale = radarSize / radarViewBoxSize;
   const dots = [
     { angle: 40, radius: 70, emoji: "☕", color: OR },
@@ -505,6 +505,11 @@ function RadarScreen({
     { angle: 310, radius: 105, emoji: "🏃", color: OR },
     { angle: 80, radius: 128, emoji: "🩸", color: TL },
     { angle: 185, radius: 70, emoji: "⚡", color: RD },
+    { angle: 18, radius: 96, emoji: "ðŸ“š", color: TL },
+    { angle: 112, radius: 82, emoji: "ðŸ•", color: YL },
+    { angle: 265, radius: 60, emoji: "ðŸŽ®", color: PU },
+    { angle: 338, radius: 132, emoji: "ðŸ“¸", color: PU },
+    { angle: 205, radius: 124, emoji: "ðŸŽ¤", color: RD },
   ];
   const pulseValues = useRef(dots.map(() => new Animated.Value(0))).current;
 
@@ -567,9 +572,9 @@ function RadarScreen({
     <ScreenFrame backgroundColor={palette.bg}>
       <Header action={<ThemeToggle theme={theme} onPress={onToggleTheme} />} />
       <LiveStrip theme={palette} />
-      <View style={{ height: radarSize + 10, paddingVertical: 5, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ height: radarSize + 60, paddingTop: 55, paddingBottom: 5, alignItems: "center", justifyContent: "center" }}>
         <View style={{ width: radarSize, height: radarSize }}>
-          <Svg width={radarSize} height={radarSize} viewBox="-5 -5 230 230">
+          <Svg width={radarSize} height={radarSize} viewBox="-25 -25 270 270">
             {[35, 63, 90, 112].map((radius, index) => (
               <Circle
                 key={radius}
@@ -694,6 +699,16 @@ function RadarScreen({
                 backgroundColor: "#ff6b2b38",
               }}
             />
+            <View
+              style={{
+                position: "absolute",
+                left: (109 + radarViewBoxInset) * radarScale,
+                top: (16 + radarViewBoxInset) * radarScale - 16,
+                width: 1.5,
+                height: 16,
+                backgroundColor: "#ff6b2b38",
+              }}
+            />
           </Animated.View>
           {dots.map((dot, index) => {
             const radians = (dot.angle * Math.PI) / 180;
@@ -719,13 +734,17 @@ function RadarScreen({
       </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 9, paddingBottom: 8, gap: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 9, paddingTop: 100, paddingBottom: 8, gap: 4 }}
         style={{ flex: 1 }}
       >
         {[
           { emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
           { emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
           { emoji: "⚽", label: "Football", distance: "490m", color: OR, tag: "4/10" },
+          { emoji: "ðŸŽ®", label: "Gaming", distance: "260m", color: PU, tag: "3/8" },
+          { emoji: "ðŸ•", label: "Food Run", distance: "330m", color: YL, tag: "5/12" },
+          { emoji: "ðŸ“š", label: "Study Sprint", distance: "620m", color: TL, tag: "FOCUS" },
+          { emoji: "ðŸ“¸", label: "Sunset Photos", distance: "880m", color: PU, tag: "CREW" },
         ].map((quest) => (
           <Pressable
             key={quest.label}
