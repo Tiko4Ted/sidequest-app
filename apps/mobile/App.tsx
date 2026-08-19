@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
 import * as ExpoLocation from "expo-location";
+import * as Clipboard from "expo-clipboard";
 import {
   Nunito_400Regular,
   Nunito_600SemiBold,
@@ -112,6 +113,18 @@ function formatDistance(meters: number) {
 
 function fallbackLocationName(coords: Coordinates) {
   return `Pinned location ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+}
+
+function questSlug(title: string) {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "quest";
+}
+
+function questShareLink(title: string, questId?: string) {
+  return `https://sidequest.app/q/${encodeURIComponent(questId ?? questSlug(title))}`;
 }
 
 function bearingDegrees(from: Coordinates, to: Coordinates) {
@@ -705,7 +718,7 @@ export default function App() {
             )}
             {screen === "Home" && <HomeScreen nav={setScreen} postedQuests={postedQuests} postNotice={postNotice} joinedQuestKeys={joinedQuestKeys} onOpenDetail={openQuestDetail} onJoinQuest={joinQuest} />}
             {screen === "Detail" && <DetailScreen nav={setScreen} selectedQuestTitle={selectedQuestTitle} selectedQuest={selectedPostedQuest} joined={joinedQuestKeys.has(selectedQuestTitle)} onJoinQuest={() => joinQuest(selectedQuestTitle)} />}
-            {screen === "Chat" && <ChatScreen nav={setScreen} />}
+            {screen === "Chat" && <ChatScreen nav={setScreen} selectedQuestTitle={selectedQuestTitle} selectedQuest={selectedPostedQuest} />}
             {screen === "Post" && (
               <PostScreen
                 nav={setScreen}
@@ -1295,6 +1308,18 @@ function HomeScreen({
 }) {
   const palette = useAppPalette();
   const ticker = useRef(new Animated.Value(0)).current;
+  const latestPostedQuest = postedQuests[0];
+  const latestPostLink = latestPostedQuest ? questShareLink(latestPostedQuest.title, latestPostedQuest.id) : "";
+  const [copiedPostLink, setCopiedPostLink] = useState(false);
+
+  const copyLatestPostLink = async () => {
+    if (!latestPostLink) {
+      return;
+    }
+
+    await Clipboard.setStringAsync(latestPostLink);
+    setCopiedPostLink(true);
+  };
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -1308,6 +1333,10 @@ function HomeScreen({
     loop.start();
     return () => loop.stop();
   }, [ticker]);
+
+  useEffect(() => {
+    setCopiedPostLink(false);
+  }, [latestPostLink]);
 
   const translateX = ticker.interpolate({ inputRange: [0, 1], outputRange: [0, -230] });
   const quests = [
@@ -1346,6 +1375,27 @@ function HomeScreen({
       {!!postNotice && (
         <View style={{ marginHorizontal: 9, marginTop: 6, marginBottom: 2, backgroundColor: `${TL}14`, borderWidth: 1, borderColor: `${TL}35`, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10 }}>
           <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>{postNotice}</AppText>
+          {!!latestPostedQuest && (
+            <View style={{ marginTop: 7, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <AppText numberOfLines={1} style={{ flex: 1, color: palette.muted2, fontSize: 11, lineHeight: 15 }}>
+                {latestPostLink}
+              </AppText>
+              <Pressable
+                onPress={copyLatestPostLink}
+                style={({ pressed }) => ({
+                  backgroundColor: `${PU}18`,
+                  borderWidth: 1,
+                  borderColor: `${PU}40`,
+                  borderRadius: 8,
+                  paddingVertical: 6,
+                  paddingHorizontal: 10,
+                  opacity: pressed ? 0.78 : 1,
+                })}
+              >
+                <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>{copiedPostLink ? "Copied" : "Copy link"}</AppText>
+              </Pressable>
+            </View>
+          )}
         </View>
       )}
       <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
@@ -1505,6 +1555,16 @@ function DetailScreen({
   const questLocation = selectedQuest?.location ?? STATIC_QUEST_LOCATIONS[selectedQuestTitle] ?? DEFAULT_DEMO_LOCATION;
   const detailStart = selectedQuest?.start ?? "17:30";
   const [directionsOpen, setDirectionsOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const shareLink = questShareLink(selectedQuestTitle, selectedQuest?.id);
+  const copyQuestLink = async () => {
+    await Clipboard.setStringAsync(shareLink);
+    setCopiedLink(true);
+  };
+
+  useEffect(() => {
+    setCopiedLink(false);
+  }, [shareLink]);
 
   return (
     <ScreenFrame scroll>
@@ -1576,6 +1636,29 @@ function DetailScreen({
           >
             <AppText style={{ color: joined ? TL : palette.muted, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>Open directions in Google Maps</AppText>
           </Pressable>
+          {joined ? (
+            <AppText numberOfLines={1} style={{ color: palette.muted2, fontSize: 11, lineHeight: 15, marginTop: 8 }}>
+              {shareLink}
+            </AppText>
+          ) : null}
+          <Pressable
+            disabled={!joined}
+            onPress={copyQuestLink}
+            style={({ pressed }) => ({
+              marginTop: 8,
+              backgroundColor: joined ? `${PU}18` : palette.surface2,
+              borderWidth: 1,
+              borderColor: joined ? `${PU}40` : palette.border,
+              borderRadius: 8,
+              paddingVertical: 8,
+              alignItems: "center",
+              opacity: !joined ? 0.55 : pressed ? 0.78 : 1,
+            })}
+          >
+            <AppText style={{ color: joined ? PU : palette.muted, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>
+              {copiedLink ? "Quest link copied" : "Copy quest link"}
+            </AppText>
+          </Pressable>
         </View>
         <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 8 }}>
           <AppText style={{ fontSize: 18, marginBottom: 2 }}>💬</AppText>
@@ -1610,14 +1693,32 @@ function DetailScreen({
   );
 }
 
-function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
+function ChatScreen({
+  nav,
+  selectedQuestTitle,
+  selectedQuest,
+}: {
+  nav: (screen: Screen) => void;
+  selectedQuestTitle: string;
+  selectedQuest?: PostedQuest;
+}) {
   const palette = useAppPalette();
+  const [copiedLink, setCopiedLink] = useState(false);
+  const shareLink = questShareLink(selectedQuestTitle, selectedQuest?.id);
+  const copyQuestLink = async () => {
+    await Clipboard.setStringAsync(shareLink);
+    setCopiedLink(true);
+  };
   const messages = [
     { user: "Alex M.", text: "Main stage at 5pm?" },
     { user: "Joy K.", text: "Works! Which route?" },
     { user: "Alex M.", text: "Farm loop → bypass" },
     { user: "You", text: "On my way! 10 mins" },
   ];
+
+  useEffect(() => {
+    setCopiedLink(false);
+  }, [shareLink]);
 
   return (
     <ScreenFrame>
@@ -1628,7 +1729,7 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
           <AppText style={{ fontSize: 20 }}>🚲</AppText>
           <View style={{ flex: 1 }}>
-            <AppText numberOfLines={1} style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18, marginBottom: 2 }}>Bike Ride · dissolves in 1h 44m</AppText>
+            <AppText numberOfLines={1} style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18, marginBottom: 2 }}>{selectedQuestTitle} · dissolves in 1h 44m</AppText>
             <AppText style={{ color: palette.muted, fontSize: 12, lineHeight: 16 }}>⌖ Main Stage · 3/6</AppText>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#ff6b2b14", borderWidth: 1, borderColor: "#ff6b2b25", borderRadius: 7, paddingVertical: 2, paddingHorizontal: 6 }}>
@@ -1670,14 +1771,14 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
         })}
       </ScrollView>
       <View style={{ marginHorizontal: 8, marginVertical: 3, backgroundColor: "#a78bfa12", borderWidth: 1, borderColor: "#a78bfa30", borderRadius: 9, paddingVertical: 6, paddingHorizontal: 9, flexDirection: "row", alignItems: "center", gap: 5 }}>
-        <AppText style={{ fontSize: 13 }}>☎</AppText>
+        <AppText style={{ fontSize: 13 }}>🔗</AppText>
         <View style={{ flex: 1 }}>
-          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>Share contact before chat closes</AppText>
-          <AppText style={{ color: palette.muted, fontSize: 7.5 }}>28 min · Chat dissolves when squad disbands</AppText>
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>Share quest link</AppText>
+          <AppText numberOfLines={1} style={{ color: palette.muted, fontSize: 11, lineHeight: 15 }}>{shareLink}</AppText>
         </View>
-        <View style={{ backgroundColor: "#a78bfa18", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
-          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8 }}>Share</AppText>
-        </View>
+        <Pressable onPress={copyQuestLink} style={({ pressed }) => ({ backgroundColor: "#a78bfa18", borderWidth: 1, borderColor: "#a78bfa30", borderRadius: 8, paddingVertical: 6, paddingHorizontal: 8, opacity: pressed ? 0.78 : 1 })}>
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>{copiedLink ? "Copied" : "Copy"}</AppText>
+        </Pressable>
       </View>
       <View style={{ paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: palette.border, flexDirection: "row", gap: 4 }}>
         <View style={{ flex: 1, backgroundColor: palette.surface2, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 }}>
