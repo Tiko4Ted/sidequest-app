@@ -32,7 +32,15 @@ const S3 = "#22223a";
 const TX = "#f0f0f8";
 const MT = "#55557a";
 const MT2 = "#8888a8";
-const NAV_HEIGHT = 56;
+const NAV_HEIGHT = 76;
+const NAV_ICON_SIZE = 24;
+const NAV_LABEL_SIZE = 12;
+const NAV_ITEM_MIN_WIDTH = 58;
+const NAV_HOME_INDICATOR_WIDTH = 128;
+const RADAR_LIST_SIDE_PADDING = 20;
+const RADAR_LIST_ITEM_HEIGHT = 64;
+const RADAR_LIST_GAP = 11;
+const RADAR_LIST_THUMB_SIZE = 43;
 
 type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
 type ThemeName = "dark" | "light";
@@ -442,6 +450,8 @@ export default function App() {
   const [theme, setTheme] = useState<ThemeName>("dark");
   const [postedQuests, setPostedQuests] = useState<PostedQuest[]>([]);
   const [inQuest, setInQuest] = useState(false);
+  const [joinedQuestKeys, setJoinedQuestKeys] = useState<Set<string>>(() => new Set());
+  const [selectedQuestTitle, setSelectedQuestTitle] = useState("Bike Ride");
   const [postNotice, setPostNotice] = useState("");
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
@@ -457,6 +467,14 @@ export default function App() {
   }
 
   const activeTheme = RADAR_THEMES[theme];
+  const openQuestDetail = (title: string) => {
+    setSelectedQuestTitle(title);
+    setScreen("Detail");
+  };
+  const joinQuest = (title: string) => {
+    setInQuest(true);
+    setJoinedQuestKeys((current) => new Set(current).add(title));
+  };
 
   return (
     <ThemeContext.Provider value={activeTheme}>
@@ -469,18 +487,23 @@ export default function App() {
                 nav={setScreen}
                 theme={theme}
                 postedQuests={postedQuests}
+                joinedQuestKeys={joinedQuestKeys}
+                onOpenDetail={openQuestDetail}
+                onJoinQuest={joinQuest}
                 onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
               />
             )}
-            {screen === "Home" && <HomeScreen nav={setScreen} postedQuests={postedQuests} postNotice={postNotice} />}
-            {screen === "Detail" && <DetailScreen nav={setScreen} onJoinQuest={() => setInQuest(true)} />}
+            {screen === "Home" && <HomeScreen nav={setScreen} postedQuests={postedQuests} postNotice={postNotice} joinedQuestKeys={joinedQuestKeys} onOpenDetail={openQuestDetail} onJoinQuest={joinQuest} />}
+            {screen === "Detail" && <DetailScreen nav={setScreen} selectedQuestTitle={selectedQuestTitle} joined={joinedQuestKeys.has(selectedQuestTitle)} onJoinQuest={() => joinQuest(selectedQuestTitle)} />}
             {screen === "Chat" && <ChatScreen nav={setScreen} />}
             {screen === "Post" && (
               <PostScreen
                 nav={setScreen}
+                inQuest={inQuest}
                 onPost={(quest, notifyFree) => {
                   setPostedQuests((current) => [quest, ...current]);
                   setInQuest(true);
+                  setJoinedQuestKeys((current) => new Set(current).add(quest.title));
                   setPostNotice(
                     notifyFree
                       ? `Notified free/idle people about ${quest.title}.`
@@ -515,9 +538,10 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
         borderTopWidth: 1,
         borderTopColor: palette.navBorder,
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "space-around",
-        paddingBottom: 4,
+        paddingTop: 13,
+        paddingBottom: 18,
         zIndex: 40,
       }}
     >
@@ -532,10 +556,10 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
               accessibilityRole="button"
               onPress={() => nav(tab.id)}
               style={({ pressed }) => ({
-                width: 44,
-                height: 44,
-                borderRadius: 14,
-                marginTop: -10,
+                width: 46,
+                height: 46,
+                borderRadius: 15,
+                marginTop: -4,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: OR,
@@ -547,7 +571,7 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
                 elevation: 8,
               })}
             >
-              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 24, lineHeight: 28 }}>
+              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: NAV_ICON_SIZE, lineHeight: 28 }}>
                 +
               </AppText>
             </Pressable>
@@ -560,24 +584,25 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
             accessibilityRole="button"
             onPress={() => nav(tab.id)}
             style={({ pressed }) => ({
-              minWidth: 50,
-              paddingVertical: 4,
+              minWidth: NAV_ITEM_MIN_WIDTH,
+              paddingVertical: 0,
               paddingHorizontal: 8,
               borderRadius: 10,
               alignItems: "center",
-              gap: 2,
+              gap: 4,
               opacity: isActive ? 1 : pressed ? 0.65 : 0.45,
               transform: [{ scale: isActive ? 1.05 : 1 }],
             })}
           >
-            <AppText style={{ color: isActive ? OR : MT2, fontFamily: bodyBold, fontSize: 24, lineHeight: 24 }}>
+            <AppText style={{ color: isActive ? OR : MT2, fontFamily: bodyBold, fontSize: NAV_ICON_SIZE, lineHeight: NAV_ICON_SIZE }}>
               {tab.icon}
             </AppText>
             <AppText
               style={{
                 color: isActive ? OR : MT,
                 fontFamily: bodyBold,
-                fontSize: 12,
+                fontSize: NAV_LABEL_SIZE,
+                lineHeight: 16,
                 letterSpacing: 0.3,
               }}
             >
@@ -592,9 +617,9 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
           position: "absolute",
           bottom: 7,
           left: "50%",
-          width: 90,
-          height: 3.5,
-          marginLeft: -45,
+          width: NAV_HOME_INDICATOR_WIDTH,
+          height: 4,
+          marginLeft: -(NAV_HOME_INDICATOR_WIDTH / 2),
           borderRadius: 2,
           backgroundColor: palette.surface3,
         }}
@@ -607,11 +632,17 @@ function RadarScreen({
   nav,
   theme,
   postedQuests,
+  joinedQuestKeys,
+  onOpenDetail,
+  onJoinQuest,
   onToggleTheme,
 }: {
   nav: (screen: Screen) => void;
   theme: ThemeName;
   postedQuests: PostedQuest[];
+  joinedQuestKeys: Set<string>;
+  onOpenDetail: (title: string) => void;
+  onJoinQuest: (title: string) => void;
   onToggleTheme: () => void;
 }) {
   const spin = useRef(new Animated.Value(0)).current;
@@ -696,6 +727,15 @@ function RadarScreen({
   }, [centerPulse]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  const visibleEndedQuests = [
+    {
+      emoji: "🚲",
+      label: "Bike Ride",
+      endedMinutesAgo: 22,
+      people: 5,
+      participated: false,
+    },
+  ].filter((quest) => quest.endedMinutesAgo < 24 * 60);
 
   return (
     <ScreenFrame backgroundColor={palette.bg}>
@@ -847,7 +887,7 @@ function RadarScreen({
             return (
               <Pressable
                 key={`${dot.emoji}-${index}-touch`}
-                onPress={() => nav("Detail")}
+                onPress={() => onOpenDetail(dot.emoji === "⚽" ? "Evening Football" : "Bike Ride")}
                 style={{
                   position: "absolute",
                   left: (x + radarViewBoxInset) * radarScale - 22,
@@ -864,7 +904,7 @@ function RadarScreen({
       <View style={{ height: 10 }} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 9, paddingBottom: 8, gap: 4 }}
+        contentContainerStyle={{ paddingHorizontal: RADAR_LIST_SIDE_PADDING, paddingBottom: 12, gap: RADAR_LIST_GAP }}
         style={{ flex: 1 }}
       >
         {[
@@ -874,6 +914,7 @@ function RadarScreen({
             distance: quest.distance,
             color: quest.color,
             tag: quest.tag,
+            joined: true,
           })),
           { emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
           { emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
@@ -882,46 +923,132 @@ function RadarScreen({
           { emoji: "ðŸ•", label: "Food Run", distance: "330m", color: YL, tag: "5/12" },
           { emoji: "ðŸ“š", label: "Study Sprint", distance: "620m", color: TL, tag: "FOCUS" },
           { emoji: "ðŸ“¸", label: "Sunset Photos", distance: "880m", color: PU, tag: "CREW" },
-        ].map((quest) => (
+        ].map((quest) => {
+          const full = quest.label === "Football" || quest.label === "Evening Football" || quest.tag.includes("10/10");
+          const joined = ("joined" in quest && quest.joined) || joinedQuestKeys.has(quest.label);
+
+          return (
           <Pressable
             key={quest.label}
-            onPress={() => nav("Detail")}
+            onPress={() => onOpenDetail(quest.label)}
             style={({ pressed }) => ({
               flexDirection: "row",
               alignItems: "center",
-              gap: 7,
-              height: 50,
-              backgroundColor: palette.surface,
+              gap: 14,
+              minHeight: RADAR_LIST_ITEM_HEIGHT,
+              backgroundColor: full ? palette.ghost : palette.surface,
               borderWidth: 1,
-              borderColor: `${quest.color}24`,
-              borderRadius: 11,
-              paddingVertical: 6,
-              paddingHorizontal: 9,
-              opacity: pressed ? 0.78 : 1,
+              borderColor: full ? palette.softBorder : palette.border,
+              borderRadius: 15,
+              paddingVertical: 10,
+              paddingHorizontal: 13,
+              opacity: full ? 0.8 : pressed ? 0.78 : 1,
             })}
           >
-            <AppText style={{ fontSize: 23 }}>{quest.emoji}</AppText>
+            <View
+              style={{
+                width: RADAR_LIST_THUMB_SIZE,
+                height: RADAR_LIST_THUMB_SIZE,
+                borderRadius: 10,
+                backgroundColor: `${quest.color}24`,
+                borderWidth: 1,
+                borderColor: `${quest.color}32`,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppText style={{ fontSize: 22, lineHeight: 26 }}>{quest.emoji}</AppText>
+            </View>
             <View style={{ flex: 1 }}>
-              <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 15 }}>{quest.label}</AppText>
-              <AppText style={{ color: quest.color, fontFamily: bodyBold, fontSize: 10 }}>{quest.tag}</AppText>
+              <AppText style={{ color: full ? palette.muted : palette.text, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>
+                {quest.label}
+              </AppText>
+              <AppText style={{ color: full ? palette.muted : palette.muted2, fontFamily: bodyFont, fontSize: 13, lineHeight: 18 }}>
+                {full ? "Quest full - create similar" : joined ? `${quest.distance} - in squad` : `${quest.distance} - ${quest.tag}`}
+              </AppText>
             </View>
-            <AppText style={{ color: palette.muted, fontSize: 11, marginRight: 3 }}>{quest.distance}</AppText>
-            <View style={{ paddingVertical: 4, paddingHorizontal: 10, backgroundColor: quest.color, borderRadius: 7 }}>
-              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 11 }}>Join</AppText>
-            </View>
+            <Pressable
+              onPress={() => {
+                if (full) {
+                  nav("Post");
+                  return;
+                }
+                onJoinQuest(quest.label);
+              }}
+              style={{
+                minWidth: full ? 88 : 46,
+                borderRadius: 8,
+                borderWidth: full ? 1 : 0,
+                borderColor: full ? palette.border : "transparent",
+                backgroundColor: full ? palette.surface2 : joined ? TL : quest.color,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <AppText style={{ color: full ? palette.muted : "white", fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>
+                {full ? "Create similar" : joined ? "In" : "Join"}
+              </AppText>
+            </Pressable>
           </Pressable>
+          );
+        })}
+        {visibleEndedQuests.map((endedQuest) => (
+        <View
+          key={endedQuest.label}
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 14,
+            minHeight: RADAR_LIST_ITEM_HEIGHT,
+            backgroundColor: palette.ghost,
+            borderWidth: 1,
+            borderColor: palette.softBorder,
+            borderRadius: 15,
+            paddingVertical: 10,
+            paddingHorizontal: 13,
+            opacity: 0.55,
+          }}
+        >
+          <View
+            style={{
+              width: RADAR_LIST_THUMB_SIZE,
+              height: RADAR_LIST_THUMB_SIZE,
+              borderRadius: 10,
+              backgroundColor: palette.surface2,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <AppText style={{ fontSize: 20, opacity: 0.45 }}>🚲</AppText>
+          </View>
+          <View style={{ flex: 1 }}>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>{endedQuest.label}</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 13, lineHeight: 18 }}>
+              Ended {endedQuest.endedMinutesAgo} min ago - {endedQuest.people} people - visible 24h
+            </AppText>
+          </View>
+          <View style={{ backgroundColor: palette.surface2, borderRadius: 8, borderWidth: 1, borderColor: palette.border, paddingVertical: 6, paddingHorizontal: 10 }}>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>
+              {endedQuest.participated ? "Memory" : "Ghost"}
+            </AppText>
+          </View>
+        </View>
         ))}
+        {false && (
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
-            gap: 7,
+            gap: 14,
+            minHeight: RADAR_LIST_ITEM_HEIGHT,
             backgroundColor: palette.ghost,
             borderWidth: 1,
             borderColor: palette.softBorder,
-            borderRadius: 11,
-            paddingVertical: 6,
-            paddingHorizontal: 9,
+            borderRadius: 15,
+            paddingVertical: 10,
+            paddingHorizontal: 13,
             opacity: 0.55,
           }}
         >
@@ -934,6 +1061,7 @@ function RadarScreen({
             <AppText style={{ color: palette.muted, fontSize: 8 }}>ghost</AppText>
           </View>
         </View>
+        )}
       </ScrollView>
     </ScreenFrame>
   );
@@ -943,10 +1071,16 @@ function HomeScreen({
   nav,
   postedQuests,
   postNotice,
+  joinedQuestKeys,
+  onOpenDetail,
+  onJoinQuest,
 }: {
   nav: (screen: Screen) => void;
   postedQuests: PostedQuest[];
   postNotice: string;
+  joinedQuestKeys: Set<string>;
+  onOpenDetail: (title: string) => void;
+  onJoinQuest: (title: string) => void;
 }) {
   const palette = useAppPalette();
   const ticker = useRef(new Animated.Value(0)).current;
@@ -1017,7 +1151,14 @@ function HomeScreen({
         contentContainerStyle={{ paddingVertical: 6, paddingHorizontal: 9, gap: 6, paddingBottom: 8 }}
       >
         {quests.map((quest) => (
-          <QuestCard key={quest.title} quest={quest} onPress={() => nav("Detail")} />
+          <QuestCard
+            key={quest.title}
+            quest={quest}
+            joined={joinedQuestKeys.has(quest.title)}
+            onPress={() => onOpenDetail(quest.title)}
+            onJoin={() => onJoinQuest(quest.title)}
+            onCreateSimilar={() => nav("Post")}
+          />
         ))}
         <View
           style={{
@@ -1048,7 +1189,10 @@ function HomeScreen({
 
 function QuestCard({
   quest,
+  joined,
   onPress,
+  onJoin,
+  onCreateSimilar,
 }: {
   quest: {
     emoji: string;
@@ -1060,29 +1204,33 @@ function QuestCard({
     start: string;
     full: boolean;
   };
+  joined: boolean;
   onPress: () => void;
+  onJoin: () => void;
+  onCreateSimilar: () => void;
 }) {
   const palette = useAppPalette();
+  const full = quest.full || quest.members >= quest.max;
 
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => ({
-        backgroundColor: quest.full ? palette.ghost : palette.surface,
+        backgroundColor: full ? palette.ghost : palette.surface,
         borderWidth: 1,
-        borderColor: quest.full ? palette.softBorder : palette.border,
+        borderColor: full ? palette.softBorder : palette.border,
         borderRadius: 14,
         padding: 10,
         overflow: "hidden",
-        opacity: quest.full ? 0.8 : pressed ? 0.78 : 1,
+        opacity: full ? 0.8 : pressed ? 0.78 : 1,
       })}
     >
-      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, backgroundColor: quest.full ? MT : OR }} />
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, backgroundColor: full ? palette.muted : OR }} />
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
         <AppText style={{ fontSize: 24, lineHeight: 27 }}>{quest.emoji}</AppText>
-        {quest.full ? (
+        {full ? (
           <View style={{ backgroundColor: palette.surface2, borderColor: palette.border, borderWidth: 1, borderRadius: 7, paddingVertical: 2, paddingHorizontal: 7 }}>
-            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 8.5 }}>FULL</AppText>
+            <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 8.5 }}>QUEST FULL</AppText>
           </View>
         ) : (
           <View style={{ backgroundColor: `${TL}18`, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
@@ -1090,11 +1238,11 @@ function QuestCard({
           </View>
         )}
       </View>
-      <AppText display style={{ color: quest.full ? palette.muted : palette.text, fontFamily: displayFontAlt, fontSize: 12, marginBottom: 1 }}>
+      <AppText display style={{ color: full ? palette.muted : palette.text, fontFamily: displayFontAlt, fontSize: 12, marginBottom: 1 }}>
         {quest.title}
       </AppText>
       <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 6 }}>⌖ {quest.place}</AppText>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: quest.full ? 0 : 5 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: full ? 0 : 5 }}>
         <View style={{ flexDirection: "row", gap: 3, alignItems: "center" }}>
           {Array.from({ length: Math.min(quest.max, 5) }).map((_, index) => (
             <View
@@ -1113,29 +1261,34 @@ function QuestCard({
             {quest.members}/{quest.max}
           </AppText>
         </View>
-        {quest.full ? (
-          <View style={{ backgroundColor: palette.surface2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 9 }}>
+        {full ? (
+          <Pressable onPress={onCreateSimilar} style={{ backgroundColor: palette.surface2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 9 }}>
             <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 8.5 }}>Create similar</AppText>
-          </View>
+          </Pressable>
         ) : (
-          <View style={{ backgroundColor: OR, borderRadius: 7, paddingVertical: 4, paddingHorizontal: 10 }}>
-            <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8.5 }}>Join</AppText>
-          </View>
+          <Pressable onPress={onJoin} style={{ backgroundColor: joined ? TL : OR, borderRadius: 7, paddingVertical: 4, paddingHorizontal: 10 }}>
+            <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8.5 }}>{joined ? "In" : "Join"}</AppText>
+          </Pressable>
         )}
       </View>
-      {!quest.full && <EnergyBar level={quest.energy} />}
+      {!full && <EnergyBar level={quest.energy} />}
     </Pressable>
   );
 }
 
 function DetailScreen({
   nav,
+  selectedQuestTitle,
+  joined,
   onJoinQuest,
 }: {
   nav: (screen: Screen) => void;
+  selectedQuestTitle: string;
+  joined: boolean;
   onJoinQuest: () => void;
 }) {
   const palette = useAppPalette();
+  const full = selectedQuestTitle === "Football" || selectedQuestTitle === "Evening Football";
 
   return (
     <ScreenFrame scroll>
@@ -1145,7 +1298,7 @@ function DetailScreen({
           <BackButton onPress={() => nav("Home")} />
         </View>
         <AppText style={{ fontSize: 38, lineHeight: 42, marginBottom: 6 }}>🚲</AppText>
-        <AppText display style={{ color: palette.text, fontSize: 20, marginBottom: 2 }}>Bike Ride</AppText>
+        <AppText display style={{ color: palette.text, fontSize: 20, marginBottom: 2 }}>{selectedQuestTitle}</AppText>
         <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ Juja Farm Road area</AppText>
         <AppText style={{ color: palette.muted2, fontFamily: "Nunito_400Regular", fontSize: 8, marginTop: 1, fontStyle: "italic" }}>
           Exact location unlocks when you join
@@ -1154,7 +1307,7 @@ function DetailScreen({
       <View style={{ paddingTop: 10 }}>
         <View style={{ flexDirection: "row", gap: 5, marginBottom: 9 }}>
           {[
-            { label: "Squad", value: "2/6", color: OR },
+            { label: "Squad", value: full ? "10/10" : joined ? "3/6" : "2/6", color: OR },
             { label: "Expires", value: "18h", color: palette.text },
             { label: "Starts", value: "17:30", color: TL },
           ].map((item) => (
@@ -1197,15 +1350,23 @@ function DetailScreen({
           </View>
           <AppText style={{ color: palette.muted, fontSize: 7.5 }}>1 more needed</AppText>
         </View>
-        <Pressable
-          onPress={() => {
-            onJoinQuest();
-            nav("Chat");
-          }}
-          style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}
-        >
-          <AppText display style={{ color: "white", fontSize: 13 }}>⚡ Join Quest</AppText>
-        </Pressable>
+        {full ? (
+          <Pressable onPress={() => nav("Post")} style={({ pressed }) => ({ backgroundColor: palette.surface2, borderWidth: 1, borderColor: palette.border, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
+            <AppText display style={{ color: palette.muted, fontSize: 13 }}>Quest full - Create similar</AppText>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => {
+              if (!joined) {
+                onJoinQuest();
+              }
+              nav("Chat");
+            }}
+            style={({ pressed }) => ({ backgroundColor: joined ? TL : OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}
+          >
+            <AppText display style={{ color: "white", fontSize: 13 }}>{joined ? "In - Open Chat" : "⚡ Join Quest"}</AppText>
+          </Pressable>
+        )}
       </View>
     </ScreenFrame>
   );
@@ -1294,10 +1455,12 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
 
 function PostScreen({
   nav,
+  inQuest,
   onPost,
   nextIndex,
 }: {
   nav: (screen: Screen) => void;
+  inQuest: boolean;
   onPost: (quest: PostedQuest, notifyFree: boolean) => void;
   nextIndex: number;
 }) {
@@ -1320,6 +1483,10 @@ function PostScreen({
   const placeOptions = ["JKUAT Main Gate", "Juja Farm Rd", "Student Center", "Kahawa Sukari"];
 
   function postQuest() {
+    if (inQuest) {
+      return;
+    }
+
     const color = [OR, TL, PU, YL][nextIndex % 4];
     onPost({
       id: `posted-${Date.now()}`,
@@ -1340,13 +1507,60 @@ function PostScreen({
     nav("Home");
   }
 
+  if (inQuest) {
+    return (
+      <ScreenFrame scroll>
+        <View style={{ height: 18 }} />
+        <View
+          style={{
+            marginHorizontal: 8,
+            minHeight: RADAR_LIST_ITEM_HEIGHT,
+            backgroundColor: palette.surface,
+            borderWidth: 1.5,
+            borderColor: `${OR}35`,
+            borderRadius: 15,
+            paddingVertical: 18,
+            paddingHorizontal: 14,
+            marginBottom: RADAR_LIST_GAP,
+          }}
+        >
+          <AppText display style={{ color: palette.text, fontSize: 24, lineHeight: 30, marginBottom: 8 }}>
+            Quest posting locked
+          </AppText>
+          <AppText style={{ color: palette.muted2, fontFamily: bodyBold, fontSize: 16, lineHeight: 22 }}>
+            You're already inside an active quest. Finish or leave that quest before creating another one.
+          </AppText>
+        </View>
+        <Pressable
+          onPress={() => nav("Home")}
+          style={({ pressed }) => ({
+            marginHorizontal: 8,
+            minHeight: RADAR_LIST_ITEM_HEIGHT,
+            backgroundColor: OR,
+            borderRadius: 15,
+            padding: 13,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: pressed ? 0.8 : 1,
+          })}
+        >
+          <AppText display style={{ color: "white", fontSize: 16, lineHeight: 21 }}>
+            Back to Home
+          </AppText>
+        </Pressable>
+      </ScreenFrame>
+    );
+  }
+
   return (
     <ScreenFrame scroll>
-      <AppText display style={{ color: palette.text, fontSize: 19, marginBottom: 2 }}>
-        Post a <AppText display style={{ color: OR, fontSize: 19 }}>Quest</AppText>
+      <View style={{ height: 18 }} />
+      <View style={{ marginHorizontal: 8 }}>
+      <AppText display style={{ color: palette.text, fontSize: 24, lineHeight: 30, marginBottom: 4 }}>
+        Post a <AppText display style={{ color: OR, fontSize: 24, lineHeight: 30 }}>Quest</AppText>
       </AppText>
-      <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 10 }}>Visible to people near you in 30 seconds.</AppText>
-      <SectionLabel>Quick start</SectionLabel>
+      <AppText style={{ color: palette.muted, fontSize: 13, lineHeight: 18, marginBottom: RADAR_LIST_GAP }}>Visible to people near you in 30 seconds.</AppText>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Quick start</AppText>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
         {templates.map(([emoji, label], index) => (
           <Pressable key={label} onPress={() => setSelectedTemplate(index)} style={{ width: "24%", backgroundColor: index === selectedTemplate ? "#ff6b2b20" : palette.surface, borderWidth: 1.5, borderColor: index === selectedTemplate ? OR : palette.border, borderRadius: 9, paddingVertical: 5, alignItems: "center" }}>
@@ -1359,27 +1573,34 @@ function PostScreen({
       <Pressable onPress={() => setPlaceIndex((current) => (current + 1) % placeOptions.length)}>
         <Field label="Location" value={placeOptions[placeIndex]} />
       </Pressable>
-      <SectionLabel>Start time</SectionLabel>
-      <View style={{ backgroundColor: `${TL}10`, borderWidth: 1.5, borderColor: `${TL}40`, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 4 }}>
-        <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 10.5 }}>▶ 18:00</AppText>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Start time</AppText>
+      <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: `${TL}10`, borderWidth: 1.5, borderColor: `${TL}40`, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 13, marginBottom: RADAR_LIST_GAP, flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={{ width: RADAR_LIST_THUMB_SIZE, height: RADAR_LIST_THUMB_SIZE, borderRadius: 10, backgroundColor: `${TL}20`, alignItems: "center", justifyContent: "center" }}>
+          <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 18, lineHeight: 22 }}>▶</AppText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>18:00</AppText>
+          <AppText style={{ color: TL, fontSize: 13, lineHeight: 18 }}>Evening start</AppText>
+        </View>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 }}>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Squad size</AppText>
+      <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, borderRadius: 15, paddingVertical: 8, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: RADAR_LIST_GAP }}>
         <Pressable onPress={() => setMaxPeople((current) => Math.max(3, current - 1))}>
           <StepperButton label="−" />
         </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <AppText display style={{ color: OR, fontSize: 24 }}>{maxPeople}</AppText>
-          <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5 }}>max</AppText>
+          <AppText display style={{ color: OR, fontSize: 28, lineHeight: 34 }}>{maxPeople}</AppText>
+          <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>max people</AppText>
         </View>
         <Pressable onPress={() => setMaxPeople((current) => Math.min(10, current + 1))}>
           <StepperButton label="+" />
         </Pressable>
       </View>
-      <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 10, marginBottom: 10 }}>
-        <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18, marginBottom: 7 }}>
+      <View style={{ backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, borderRadius: 15, padding: 13, marginBottom: RADAR_LIST_GAP }}>
+        <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 16, lineHeight: 21, marginBottom: 10 }}>
           Notify people who are free/idle?
         </AppText>
-        <View style={{ flexDirection: "row", gap: 6 }}>
+        <View style={{ flexDirection: "row", gap: RADAR_LIST_GAP }}>
           {[
             { label: "Yes", value: true },
             { label: "No", value: false },
@@ -1389,24 +1610,27 @@ function PostScreen({
               onPress={() => setNotifyFree(option.value)}
               style={{
                 flex: 1,
-                borderRadius: 9,
-                paddingVertical: 8,
+                minHeight: 48,
+                borderRadius: 12,
+                paddingVertical: 12,
                 alignItems: "center",
+                justifyContent: "center",
                 backgroundColor: notifyFree === option.value ? `${TL}20` : palette.surface2,
                 borderWidth: 1,
                 borderColor: notifyFree === option.value ? TL : palette.border,
               }}
             >
-              <AppText style={{ color: notifyFree === option.value ? TL : palette.muted, fontFamily: bodyBold, fontSize: 14 }}>
+              <AppText style={{ color: notifyFree === option.value ? TL : palette.muted, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>
                 {option.label}
               </AppText>
             </Pressable>
           ))}
         </View>
       </View>
-      <Pressable onPress={postQuest} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 11, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
-        <AppText display style={{ color: "white", fontSize: 13 }}>Post Quest</AppText>
+      <Pressable onPress={postQuest} style={({ pressed }) => ({ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: OR, borderRadius: 15, padding: 13, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.8 : 1 })}>
+        <AppText display style={{ color: "white", fontSize: 16, lineHeight: 21 }}>Post Quest</AppText>
       </Pressable>
+      </View>
     </ScreenFrame>
   );
 }
@@ -1595,9 +1819,11 @@ function Field({ label, value, color }: { label: string; value: string; color?: 
 
   return (
     <View>
-      <SectionLabel>{label}</SectionLabel>
-      <View style={{ backgroundColor: palette.surface, borderWidth: 1.5, borderColor: color || "#ffffff12", borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9 }}>
-        <AppText style={{ color: color ? TX : MT, fontSize: 10.5 }}>{value}</AppText>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>
+        {label}
+      </AppText>
+      <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: color || palette.border, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 13, marginBottom: RADAR_LIST_GAP, justifyContent: "center" }}>
+        <AppText style={{ color: color ? palette.text : palette.muted2, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>{value}</AppText>
       </View>
     </View>
   );
@@ -1607,8 +1833,8 @@ function StepperButton({ label }: { label: string }) {
   const palette = useAppPalette();
 
   return (
-    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, alignItems: "center", justifyContent: "center" }}>
-      <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 16 }}>{label}</AppText>
+    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, alignItems: "center", justifyContent: "center" }}>
+      <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 22, lineHeight: 26 }}>{label}</AppText>
     </View>
   );
 }
