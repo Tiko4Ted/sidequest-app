@@ -36,6 +36,22 @@ const NAV_HEIGHT = 56;
 
 type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
 type ThemeName = "dark" | "light";
+type PostedQuest = {
+  id: string;
+  emoji: string;
+  title: string;
+  place: string;
+  members: number;
+  max: number;
+  energy: number;
+  start: string;
+  full: boolean;
+  distance: string;
+  color: string;
+  tag: string;
+  angle: number;
+  radius: number;
+};
 
 const RADAR_THEMES = {
   dark: {
@@ -424,6 +440,9 @@ function ScreenFrame({
 export default function App() {
   const [screen, setScreen] = useState<Screen>("Radar");
   const [theme, setTheme] = useState<ThemeName>("dark");
+  const [postedQuests, setPostedQuests] = useState<PostedQuest[]>([]);
+  const [inQuest, setInQuest] = useState(false);
+  const [postNotice, setPostNotice] = useState("");
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -449,14 +468,29 @@ export default function App() {
               <RadarScreen
                 nav={setScreen}
                 theme={theme}
+                postedQuests={postedQuests}
                 onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
               />
             )}
-            {screen === "Home" && <HomeScreen nav={setScreen} />}
-            {screen === "Detail" && <DetailScreen nav={setScreen} />}
+            {screen === "Home" && <HomeScreen nav={setScreen} postedQuests={postedQuests} postNotice={postNotice} />}
+            {screen === "Detail" && <DetailScreen nav={setScreen} onJoinQuest={() => setInQuest(true)} />}
             {screen === "Chat" && <ChatScreen nav={setScreen} />}
-            {screen === "Post" && <PostScreen nav={setScreen} />}
-            {screen === "I'm Free" && <FreeScreen nav={setScreen} />}
+            {screen === "Post" && (
+              <PostScreen
+                nav={setScreen}
+                onPost={(quest, notifyFree) => {
+                  setPostedQuests((current) => [quest, ...current]);
+                  setInQuest(true);
+                  setPostNotice(
+                    notifyFree
+                      ? `Notified free/idle people about ${quest.title}.`
+                      : `${quest.title} posted without notifying free/idle people.`,
+                  );
+                }}
+                nextIndex={postedQuests.length}
+              />
+            )}
+            {screen === "I'm Free" && <FreeScreen nav={setScreen} inQuest={inQuest} />}
             {screen === "Profile" && <ProfileScreen />}
           </View>
           <BottomNav screen={screen} nav={setScreen} />
@@ -572,10 +606,12 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
 function RadarScreen({
   nav,
   theme,
+  postedQuests,
   onToggleTheme,
 }: {
   nav: (screen: Screen) => void;
   theme: ThemeName;
+  postedQuests: PostedQuest[];
   onToggleTheme: () => void;
 }) {
   const spin = useRef(new Animated.Value(0)).current;
@@ -597,6 +633,12 @@ function RadarScreen({
     { angle: 265, radius: 60, emoji: "ðŸŽ®", color: PU },
     { angle: 338, radius: 132, emoji: "ðŸ“¸", color: PU },
     { angle: 205, radius: 124, emoji: "ðŸŽ¤", color: RD },
+    ...postedQuests.map((quest) => ({
+      angle: quest.angle,
+      radius: quest.radius,
+      emoji: quest.emoji,
+      color: quest.color,
+    })),
   ];
   const pulseValues = useRef(dots.map(() => new Animated.Value(0))).current;
 
@@ -826,6 +868,13 @@ function RadarScreen({
         style={{ flex: 1 }}
       >
         {[
+          ...postedQuests.map((quest) => ({
+            emoji: quest.emoji,
+            label: quest.title,
+            distance: quest.distance,
+            color: quest.color,
+            tag: quest.tag,
+          })),
           { emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
           { emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
           { emoji: "⚽", label: "Football", distance: "490m", color: OR, tag: "4/10" },
@@ -890,7 +939,15 @@ function RadarScreen({
   );
 }
 
-function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
+function HomeScreen({
+  nav,
+  postedQuests,
+  postNotice,
+}: {
+  nav: (screen: Screen) => void;
+  postedQuests: PostedQuest[];
+  postNotice: string;
+}) {
   const palette = useAppPalette();
   const ticker = useRef(new Animated.Value(0)).current;
 
@@ -909,6 +966,7 @@ function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
 
   const translateX = ticker.interpolate({ inputRange: [0, 1], outputRange: [0, -230] });
   const quests = [
+    ...postedQuests,
     { emoji: "🚲", title: "Bike Ride", place: "Juja Farm Rd", members: 3, max: 6, energy: 4, start: "17:30", full: false },
     { emoji: "🎲", title: "Board Games", place: "Kahawa Sukari", members: 4, max: 8, energy: 3, start: "19:00", full: false },
     { emoji: "⚽", title: "Evening Football", place: "JKUAT Grounds", members: 10, max: 10, energy: 2, start: "18:00", full: true },
@@ -940,6 +998,11 @@ function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
         </View>
       </View>
       <LiveStrip compact />
+      {!!postNotice && (
+        <View style={{ marginHorizontal: 9, marginTop: 6, marginBottom: 2, backgroundColor: `${TL}14`, borderWidth: 1, borderColor: `${TL}35`, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10 }}>
+          <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>{postNotice}</AppText>
+        </View>
+      )}
       <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: palette.border }}>
         <View style={{ paddingVertical: 5, paddingHorizontal: 9, borderBottomWidth: 2, borderBottomColor: OR }}>
           <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 10 }}>Quests</AppText>
@@ -1065,7 +1128,13 @@ function QuestCard({
   );
 }
 
-function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
+function DetailScreen({
+  nav,
+  onJoinQuest,
+}: {
+  nav: (screen: Screen) => void;
+  onJoinQuest: () => void;
+}) {
   const palette = useAppPalette();
 
   return (
@@ -1128,7 +1197,13 @@ function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
           </View>
           <AppText style={{ color: palette.muted, fontSize: 7.5 }}>1 more needed</AppText>
         </View>
-        <Pressable onPress={() => nav("Chat")} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
+        <Pressable
+          onPress={() => {
+            onJoinQuest();
+            nav("Chat");
+          }}
+          style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}
+        >
           <AppText display style={{ color: "white", fontSize: 13 }}>⚡ Join Quest</AppText>
         </Pressable>
       </View>
@@ -1217,8 +1292,53 @@ function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
   );
 }
 
-function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
+function PostScreen({
+  nav,
+  onPost,
+  nextIndex,
+}: {
+  nav: (screen: Screen) => void;
+  onPost: (quest: PostedQuest, notifyFree: boolean) => void;
+  nextIndex: number;
+}) {
   const palette = useAppPalette();
+  const templates = [
+    ["☕", "Coffee"],
+    ["⚽", "Football"],
+    ["🎲", "Games"],
+    ["🚶", "Walk"],
+    ["🏃", "Run"],
+    ["🍕", "Food"],
+    ["🎮", "Gaming"],
+    ["🏊", "Swim"],
+  ];
+  const [selectedTemplate, setSelectedTemplate] = useState(1);
+  const [placeIndex, setPlaceIndex] = useState(0);
+  const [maxPeople, setMaxPeople] = useState(10);
+  const [notifyFree, setNotifyFree] = useState(true);
+  const selected = templates[selectedTemplate];
+  const placeOptions = ["JKUAT Main Gate", "Juja Farm Rd", "Student Center", "Kahawa Sukari"];
+
+  function postQuest() {
+    const color = [OR, TL, PU, YL][nextIndex % 4];
+    onPost({
+      id: `posted-${Date.now()}`,
+      emoji: selected[0],
+      title: selected[1],
+      place: placeOptions[placeIndex],
+      members: 1,
+      max: Math.min(maxPeople, 10),
+      energy: 3,
+      start: "18:00",
+      full: false,
+      distance: `${260 + nextIndex * 90}m`,
+      color,
+      tag: "NEW 1/" + Math.min(maxPeople, 10),
+      angle: (35 + nextIndex * 47) % 360,
+      radius: 72 + (nextIndex % 4) * 18,
+    }, notifyFree);
+    nav("Home");
+  }
 
   return (
     <ScreenFrame scroll>
@@ -1228,61 +1348,96 @@ function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
       <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 10 }}>Visible to people near you in 30 seconds.</AppText>
       <SectionLabel>Quick start</SectionLabel>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
-        {[
-          ["☕", "Coffee"],
-          ["⚽", "Football"],
-          ["🎲", "Games"],
-          ["🚶", "Walk"],
-          ["🏃", "Run"],
-          ["🍕", "Food"],
-          ["🎮", "Gaming"],
-          ["🏊", "Swim"],
-        ].map(([emoji, label], index) => (
-          <View key={label} style={{ width: "24%", backgroundColor: index === 1 ? "#ff6b2b20" : S1, borderWidth: 1.5, borderColor: index === 1 ? OR : "#ffffff12", borderRadius: 9, paddingVertical: 5, alignItems: "center" }}>
+        {templates.map(([emoji, label], index) => (
+          <Pressable key={label} onPress={() => setSelectedTemplate(index)} style={{ width: "24%", backgroundColor: index === selectedTemplate ? "#ff6b2b20" : palette.surface, borderWidth: 1.5, borderColor: index === selectedTemplate ? OR : palette.border, borderRadius: 9, paddingVertical: 5, alignItems: "center" }}>
             <AppText style={{ fontSize: 15, marginBottom: 1 }}>{emoji}</AppText>
-            <AppText style={{ color: index === 1 ? OR : MT2, fontFamily: bodyBold, fontSize: 7 }}>{label}</AppText>
-          </View>
+            <AppText style={{ color: index === selectedTemplate ? OR : palette.muted2, fontFamily: bodyBold, fontSize: 7 }}>{label}</AppText>
+          </Pressable>
         ))}
       </View>
-      <Field label="Activity" value="Football" color={OR} />
-      <Field label="Location" value="JKUAT Main Gate…" />
+      <Field label="Activity" value={selected[1]} color={OR} />
+      <Pressable onPress={() => setPlaceIndex((current) => (current + 1) % placeOptions.length)}>
+        <Field label="Location" value={placeOptions[placeIndex]} />
+      </Pressable>
       <SectionLabel>Start time</SectionLabel>
       <View style={{ backgroundColor: `${TL}10`, borderWidth: 1.5, borderColor: `${TL}40`, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 4 }}>
         <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 10.5 }}>▶ 18:00</AppText>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 }}>
-        <StepperButton label="−" />
+        <Pressable onPress={() => setMaxPeople((current) => Math.max(3, current - 1))}>
+          <StepperButton label="−" />
+        </Pressable>
         <View style={{ flex: 1, alignItems: "center" }}>
-          <AppText display style={{ color: OR, fontSize: 24 }}>10</AppText>
+          <AppText display style={{ color: OR, fontSize: 24 }}>{maxPeople}</AppText>
           <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5 }}>max</AppText>
         </View>
-        <StepperButton label="+" />
+        <Pressable onPress={() => setMaxPeople((current) => Math.min(10, current + 1))}>
+          <StepperButton label="+" />
+        </Pressable>
       </View>
-      <Pressable onPress={() => nav("Home")} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 11, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
+      <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 10, marginBottom: 10 }}>
+        <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18, marginBottom: 7 }}>
+          Notify people who are free/idle?
+        </AppText>
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {[
+            { label: "Yes", value: true },
+            { label: "No", value: false },
+          ].map((option) => (
+            <Pressable
+              key={option.label}
+              onPress={() => setNotifyFree(option.value)}
+              style={{
+                flex: 1,
+                borderRadius: 9,
+                paddingVertical: 8,
+                alignItems: "center",
+                backgroundColor: notifyFree === option.value ? `${TL}20` : palette.surface2,
+                borderWidth: 1,
+                borderColor: notifyFree === option.value ? TL : palette.border,
+              }}
+            >
+              <AppText style={{ color: notifyFree === option.value ? TL : palette.muted, fontFamily: bodyBold, fontSize: 14 }}>
+                {option.label}
+              </AppText>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+      <Pressable onPress={postQuest} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 11, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
         <AppText display style={{ color: "white", fontSize: 13 }}>Post Quest</AppText>
       </Pressable>
     </ScreenFrame>
   );
 }
 
-function FreeScreen({ nav }: { nav: (screen: Screen) => void }) {
+function FreeScreen({
+  nav,
+  inQuest,
+}: {
+  nav: (screen: Screen) => void;
+  inQuest: boolean;
+}) {
   const palette = useAppPalette();
+  const [broadcasting, setBroadcasting] = useState(false);
 
   return (
     <ScreenFrame scroll>
-      <View style={{ alignItems: "center", paddingVertical: 14, paddingHorizontal: 8, backgroundColor: "#a78bfa0e", borderRadius: 14, borderWidth: 1, borderColor: `${PU}35`, marginBottom: 10 }}>
+      <View style={{ alignItems: "center", paddingVertical: 14, paddingHorizontal: 8, backgroundColor: "#a78bfa0e", borderRadius: 14, borderWidth: 1, borderColor: `${PU}35`, marginTop: 18, marginBottom: 10 }}>
         <AppText style={{ fontSize: 34, marginBottom: 5 }}>⚡</AppText>
         <AppText display style={{ color: palette.text, fontSize: 17, marginBottom: 2 }}>I'm Free Mode</AppText>
         <AppText style={{ color: palette.muted2, fontSize: 9, lineHeight: 14, textAlign: "center" }}>No plan. No activity.{"\n"}People within 1km see you're free.</AppText>
       </View>
       <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 8 }}>
         <AppText style={{ color: palette.muted, fontSize: 8.5, marginBottom: 4 }}>
-          Next broadcast in <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>4h 22m</AppText>
+          {inQuest ? "Unavailable while you are in a quest" : broadcasting ? "Broadcast active for " : "Next broadcast in "}
+          {!inQuest && <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>{broadcasting ? "1h 54m" : "now"}</AppText>}
         </AppText>
         <View style={{ height: 4, backgroundColor: palette.surface3, borderRadius: 2, overflow: "hidden" }}>
           <View style={{ width: "27%", height: "100%", backgroundColor: PU, borderRadius: 2 }} />
         </View>
       </View>
+      {broadcasting && !inQuest && (
       <View style={{ backgroundColor: "#a78bfa10", borderWidth: 1.5, borderColor: `${PU}45`, borderRadius: 12, padding: 10, marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
           <AppText display style={{ color: palette.text, fontSize: 11 }}>Broadcasting ⚡</AppText>
@@ -1308,9 +1463,24 @@ function FreeScreen({ nav }: { nav: (screen: Screen) => void }) {
           </View>
         ))}
       </View>
-      <View style={{ backgroundColor: palette.surface2, borderRadius: 11, padding: 11, alignItems: "center", opacity: 0.6 }}>
-        <AppText display style={{ color: palette.muted, fontSize: 11 }}>⏱ Available in 4h 22m</AppText>
-      </View>
+      )}
+      <Pressable
+        disabled={inQuest}
+        onPress={() => setBroadcasting((current) => !current)}
+        style={({ pressed }) => ({
+          backgroundColor: inQuest ? palette.surface2 : broadcasting ? palette.surface2 : PU,
+          borderWidth: broadcasting || inQuest ? 1 : 0,
+          borderColor: `${PU}45`,
+          borderRadius: 11,
+          padding: 12,
+          alignItems: "center",
+          opacity: inQuest ? 0.55 : pressed ? 0.78 : 1,
+        })}
+      >
+        <AppText display style={{ color: inQuest ? palette.muted : broadcasting ? PU : "white", fontSize: 14 }}>
+          {inQuest ? "In a quest - free mode locked" : broadcasting ? "Stop broadcasting" : "⚡ Broadcast I'm Free"}
+        </AppText>
+      </Pressable>
     </ScreenFrame>
   );
 }
