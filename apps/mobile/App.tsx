@@ -167,10 +167,10 @@ function Logo() {
       display
       style={{
         color: OR,
-        fontSize: 18,
+        fontSize: 22,
         letterSpacing: -1,
-        lineHeight: 24,
-        paddingVertical: 2,
+        lineHeight: 28,
+        paddingVertical: 5,
       }}
     >
       SideQuest
@@ -494,7 +494,7 @@ function RadarScreen({
   const spin = useRef(new Animated.Value(0)).current;
   const centerPulse = useRef(new Animated.Value(0)).current;
   const palette = RADAR_THEMES[theme];
-  const radarSize = 274;
+  const radarSize = 420;
   const radarViewBoxSize = 270;
   const radarViewBoxInset = 25;
   const radarScale = radarSize / radarViewBoxSize;
@@ -572,7 +572,7 @@ function RadarScreen({
     <ScreenFrame backgroundColor={palette.bg}>
       <Header action={<ThemeToggle theme={theme} onPress={onToggleTheme} />} />
       <LiveStrip theme={palette} />
-      <View style={{ height: radarSize + 60, paddingTop: 55, paddingBottom: 5, alignItems: "center", justifyContent: "center" }}>
+      <View style={{ height: radarSize + 15, paddingTop: 10, paddingBottom: 5, alignItems: "center", justifyContent: "center" }}>
         <View style={{ width: radarSize, height: radarSize }}>
           <Svg width={radarSize} height={radarSize} viewBox="-25 -25 270 270">
             {[35, 63, 90, 112].map((radius, index) => (
@@ -732,9 +732,10 @@ function RadarScreen({
           })}
         </View>
       </View>
+      <View style={{ height: 10 }} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 9, paddingTop: 100, paddingBottom: 8, gap: 4 }}
+        contentContainerStyle={{ paddingHorizontal: 9, paddingBottom: 8, gap: 4 }}
         style={{ flex: 1 }}
       >
         {[
