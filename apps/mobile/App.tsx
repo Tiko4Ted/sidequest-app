@@ -754,6 +754,7 @@ function RadarScreen({
               flexDirection: "row",
               alignItems: "center",
               gap: 7,
+              height: 50,
               backgroundColor: palette.surface,
               borderWidth: 1,
               borderColor: `${quest.color}24`,
@@ -763,14 +764,14 @@ function RadarScreen({
               opacity: pressed ? 0.78 : 1,
             })}
           >
-            <AppText style={{ fontSize: 16 }}>{quest.emoji}</AppText>
+            <AppText style={{ fontSize: 23 }}>{quest.emoji}</AppText>
             <View style={{ flex: 1 }}>
-              <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 10 }}>{quest.label}</AppText>
-              <AppText style={{ color: quest.color, fontFamily: bodyBold, fontSize: 7.5 }}>{quest.tag}</AppText>
+              <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 15 }}>{quest.label}</AppText>
+              <AppText style={{ color: quest.color, fontFamily: bodyBold, fontSize: 10 }}>{quest.tag}</AppText>
             </View>
-            <AppText style={{ color: palette.muted, fontSize: 8.5, marginRight: 3 }}>{quest.distance}</AppText>
-            <View style={{ paddingVertical: 3, paddingHorizontal: 9, backgroundColor: quest.color, borderRadius: 7 }}>
-              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8 }}>Join</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 11, marginRight: 3 }}>{quest.distance}</AppText>
+            <View style={{ paddingVertical: 4, paddingHorizontal: 10, backgroundColor: quest.color, borderRadius: 7 }}>
+              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 11 }}>Join</AppText>
             </View>
           </Pressable>
         ))}
