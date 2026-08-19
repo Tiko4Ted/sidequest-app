@@ -505,6 +505,7 @@ function RadarScreen({
     { angle: 80, radius: 128, emoji: "🩸", color: TL },
     { angle: 185, radius: 70, emoji: "⚡", color: RD },
   ];
+  const pulseValues = useRef(dots.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -518,6 +519,29 @@ function RadarScreen({
     loop.start();
     return () => loop.stop();
   }, [spin]);
+
+  useEffect(() => {
+    const animations = pulseValues.map((value, index) =>
+      Animated.sequence([
+        Animated.delay(index * 240),
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(value, {
+              toValue: 1,
+              duration: 1350,
+              easing: Easing.out(Easing.quad),
+              useNativeDriver: true,
+            }),
+            Animated.delay(900),
+          ]),
+        ),
+      ]),
+    );
+
+    animations.forEach((animation) => animation.start());
+
+    return () => animations.forEach((animation) => animation.stop());
+  }, [pulseValues]);
 
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
@@ -570,6 +594,42 @@ function RadarScreen({
               </SvgText>
             ))}
           </Svg>
+          {dots.map((dot, index) => {
+            const radians = (dot.angle * Math.PI) / 180;
+            const x = 110 + dot.radius * 0.9 * Math.sin(radians);
+            const y = 110 - dot.radius * 0.9 * Math.cos(radians);
+            const pulse = pulseValues[index];
+            const pulseSize = 24;
+
+            return (
+              <Animated.View
+                key={`${dot.emoji}-${index}-pulse`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: (x + radarViewBoxInset) * radarScale - pulseSize / 2,
+                  top: (y + radarViewBoxInset) * radarScale - pulseSize / 2,
+                  width: pulseSize,
+                  height: pulseSize,
+                  borderRadius: pulseSize / 2,
+                  borderWidth: 1.5,
+                  borderColor: dot.color,
+                  opacity: pulse.interpolate({
+                    inputRange: [0, 0.2, 1],
+                    outputRange: [0, 0.55, 0],
+                  }),
+                  transform: [
+                    {
+                      scale: pulse.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.7, 2.35],
+                      }),
+                    },
+                  ],
+                }}
+              />
+            );
+          })}
           <Animated.View
             pointerEvents="none"
             style={{
