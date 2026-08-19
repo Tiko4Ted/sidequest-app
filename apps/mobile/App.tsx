@@ -98,6 +98,41 @@ function themeOverlayColor(palette: (typeof RADAR_THEMES)[ThemeName]) {
   return palette.bg === RADAR_THEMES.light.bg ? "rgba(246,247,251,0.92)" : "rgba(7,7,15,0.93)";
 }
 
+function androidFontSize(size?: number) {
+  if (!size) {
+    return size;
+  }
+
+  if (size < 10) {
+    return 10;
+  }
+  if (size <= 12) {
+    return size;
+  }
+  if (size < 16) {
+    return 14;
+  }
+  if (size <= 22) {
+    return size;
+  }
+  if (size < 24) {
+    return 24;
+  }
+
+  return size;
+}
+
+function androidTextStyle(style?: object) {
+  if (!style || !("fontSize" in style)) {
+    return style;
+  }
+
+  return {
+    ...style,
+    fontSize: androidFontSize((style as { fontSize?: number }).fontSize),
+  };
+}
+
 function AppText({
   children,
   style,
@@ -110,7 +145,7 @@ function AppText({
   const palette = useAppPalette();
 
   return (
-    <Text style={[{ fontFamily: display ? displayFont : bodyFont, color: palette.text }, style]}>
+    <Text style={[{ fontFamily: display ? displayFont : bodyFont, color: palette.text }, androidTextStyle(style)]}>
       {children}
     </Text>
   );
