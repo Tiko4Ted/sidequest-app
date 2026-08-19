@@ -32,7 +32,7 @@ const S3 = "#22223a";
 const TX = "#f0f0f8";
 const MT = "#55557a";
 const MT2 = "#8888a8";
-const NAV_HEIGHT = 58;
+const NAV_HEIGHT = 56;
 
 type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
 type ThemeName = "dark" | "light";
@@ -456,7 +456,7 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
               style={{
                 color: isActive ? OR : MT,
                 fontFamily: bodyBold,
-                fontSize: 8,
+                fontSize: 12,
                 letterSpacing: 0.3,
               }}
             >
