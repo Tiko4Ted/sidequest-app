@@ -1704,17 +1704,30 @@ function ChatScreen({
 }) {
   const palette = useAppPalette();
   const [copiedLink, setCopiedLink] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
+  const messageListRef = useRef<ScrollView | null>(null);
   const shareLink = questShareLink(selectedQuestTitle, selectedQuest?.id);
   const copyQuestLink = async () => {
     await Clipboard.setStringAsync(shareLink);
     setCopiedLink(true);
   };
-  const messages = [
+  const [messages, setMessages] = useState([
     { user: "Alex M.", text: "Main stage at 5pm?" },
     { user: "Joy K.", text: "Works! Which route?" },
     { user: "Alex M.", text: "Farm loop → bypass" },
     { user: "You", text: "On my way! 10 mins" },
-  ];
+  ]);
+  const canSendMessage = draftMessage.trim().length > 0;
+
+  const sendMessage = () => {
+    const text = draftMessage.trim();
+    if (!text) {
+      return;
+    }
+
+    setMessages((current) => [...current, { user: "You", text }]);
+    setDraftMessage("");
+  };
 
   useEffect(() => {
     setCopiedLink(false);
@@ -1753,7 +1766,13 @@ function ChatScreen({
           </View>
         ))}
       </ScrollView>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 10, paddingHorizontal: 10, gap: 9 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        ref={messageListRef}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingVertical: 10, paddingHorizontal: 10, gap: 9 }}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => messageListRef.current?.scrollToEnd({ animated: true })}
+      >
         {messages.map((message, index) => {
           const mine = message.user === "You";
 
@@ -1780,13 +1799,47 @@ function ChatScreen({
           <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>{copiedLink ? "Copied" : "Copy"}</AppText>
         </Pressable>
       </View>
-      <View style={{ paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: palette.border, flexDirection: "row", gap: 4 }}>
-        <View style={{ flex: 1, backgroundColor: palette.surface2, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 }}>
-          <AppText style={{ color: palette.muted, fontSize: 14, lineHeight: 18 }}>Coordinate — where are you meeting?</AppText>
-        </View>
-        <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: OR, alignItems: "center", justifyContent: "center" }}>
-          <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 11 }}>➤</AppText>
-        </View>
+      <View style={{ paddingVertical: 7, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: palette.border, flexDirection: "row", gap: 6, alignItems: "center" }}>
+        <TextInput
+          value={draftMessage}
+          onChangeText={setDraftMessage}
+          onSubmitEditing={sendMessage}
+          placeholder="Coordinate - where are you meeting?"
+          placeholderTextColor={palette.muted}
+          returnKeyType="send"
+          maxLength={240}
+          style={{
+            flex: 1,
+            minHeight: 40,
+            backgroundColor: palette.surface2,
+            borderWidth: 1,
+            borderColor: palette.border,
+            borderRadius: 10,
+            paddingVertical: 8,
+            paddingHorizontal: 11,
+            color: palette.text,
+            fontFamily: "Nunito_400Regular",
+            fontSize: 16,
+            lineHeight: 20,
+          }}
+        />
+        <Pressable
+          disabled={!canSendMessage}
+          onPress={sendMessage}
+          style={({ pressed }) => ({
+            width: 40,
+            height: 40,
+            borderRadius: 10,
+            backgroundColor: canSendMessage ? OR : palette.surface2,
+            borderWidth: canSendMessage ? 0 : 1,
+            borderColor: palette.border,
+            alignItems: "center",
+            justifyContent: "center",
+            opacity: !canSendMessage ? 0.55 : pressed ? 0.78 : 1,
+          })}
+        >
+          <AppText style={{ color: canSendMessage ? "white" : palette.muted, fontFamily: bodyBold, fontSize: 15, lineHeight: 18 }}>➤</AppText>
+        </Pressable>
       </View>
     </ScreenFrame>
   );
