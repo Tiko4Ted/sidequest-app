@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useFonts } from "expo-font";
+import * as ExpoLocation from "expo-location";
 import {
   Nunito_400Regular,
   Nunito_600SemiBold,
@@ -12,12 +13,15 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import {
   Animated,
   Easing,
+  Modal,
   Pressable,
   SafeAreaView,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
+import { WebView, WebViewMessageEvent } from "react-native-webview";
 import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 
 const OR = "#ff6b2b";
@@ -44,11 +48,22 @@ const RADAR_LIST_THUMB_SIZE = 43;
 
 type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
 type ThemeName = "dark" | "light";
+type QuestLocation = {
+  name: string;
+  area: string;
+  latitude: number;
+  longitude: number;
+};
+type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
 type PostedQuest = {
   id: string;
   emoji: string;
   title: string;
   place: string;
+  location: QuestLocation;
   members: number;
   max: number;
   energy: number;
@@ -60,6 +75,117 @@ type PostedQuest = {
   angle: number;
   radius: number;
 };
+
+const DEFAULT_DEMO_LOCATION: QuestLocation = { name: "JKUAT Main Gate", area: "Juja", latitude: -1.0896, longitude: 37.0104 };
+const STATIC_QUEST_LOCATIONS: Record<string, QuestLocation> = {
+  "Bike Ride": { name: "Juja Farm Rd", area: "Juja Farm Road", latitude: -1.0962, longitude: 37.0155 },
+  "Board Games": { name: "Kahawa Sukari", area: "Kahawa Sukari", latitude: -1.1922, longitude: 36.9314 },
+  "Evening Football": { name: "JKUAT Grounds", area: "JKUAT", latitude: -1.094, longitude: 37.0129 },
+  "Football": { name: "JKUAT Grounds", area: "JKUAT", latitude: -1.094, longitude: 37.0129 },
+  "Pizza Run": { name: "Juja City Mall", area: "Juja", latitude: -1.1015, longitude: 37.0143 },
+  "Coffee": { name: "Juja Coffee House", area: "Juja", latitude: -1.101, longitude: 37.0137 },
+};
+
+const MAX_QUEST_LOCATION_DISTANCE_METERS = 2000;
+
+function metersBetween(a: Coordinates, b: Coordinates) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusMeters = 6371000;
+  const dLat = toRadians(b.latitude - a.latitude);
+  const dLng = toRadians(b.longitude - a.longitude);
+  const lat1 = toRadians(a.latitude);
+  const lat2 = toRadians(b.latitude);
+  const h =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  return 2 * earthRadiusMeters * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+
+function formatDistance(meters: number) {
+  if (meters < 1000) {
+    return `${Math.round(meters)}m`;
+  }
+
+  return `${(meters / 1000).toFixed(1)}km`;
+}
+
+function fallbackLocationName(coords: Coordinates) {
+  return `Pinned location ${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}`;
+}
+
+function bearingDegrees(from: Coordinates, to: Coordinates) {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const toDegrees = (value: number) => (value * 180) / Math.PI;
+  const lat1 = toRadians(from.latitude);
+  const lat2 = toRadians(to.latitude);
+  const dLng = toRadians(to.longitude - from.longitude);
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+
+  return (toDegrees(Math.atan2(y, x)) + 360) % 360;
+}
+
+function radarPositionFromCoordinates(origin: Coordinates, target: Coordinates) {
+  const distance = metersBetween(origin, target);
+  return {
+    angle: bearingDegrees(origin, target),
+    radius: Math.max(35, Math.min(132, 35 + (distance / MAX_QUEST_LOCATION_DISTANCE_METERS) * 97)),
+  };
+}
+
+function mapPickerHtml(userCoords: Coordinates, selectedLocation: QuestLocation, maxDistanceMeters: number) {
+  return `<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html,body,#map{height:100%;margin:0;background:#07070f;font-family:Arial,sans-serif}
+    .hint{position:absolute;left:12px;right:12px;top:12px;z-index:500;background:rgba(7,7,15,.88);color:#f0f0f8;border:1px solid rgba(255,107,43,.35);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700}
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="hint">Tap inside the orange 2km radius to set the quest pin.</div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const userLat = ${userCoords.latitude};
+    const userLng = ${userCoords.longitude};
+    const selectedLat = ${selectedLocation.latitude};
+    const selectedLng = ${selectedLocation.longitude};
+    const map = L.map('map', { zoomControl: true }).setView([selectedLat, selectedLng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+    L.circle([userLat, userLng], {
+      radius: ${maxDistanceMeters},
+      color: '#ff6b2b',
+      weight: 2,
+      fillColor: '#ff6b2b',
+      fillOpacity: 0.08
+    }).addTo(map);
+    L.marker([userLat, userLng]).addTo(map).bindTooltip('You');
+    let marker = L.marker([selectedLat, selectedLng]).addTo(map).bindTooltip('Quest pin');
+    map.on('click', function(event) {
+      const lat = event.latlng.lat;
+      const lng = event.latlng.lng;
+      marker.setLatLng([lat, lng]);
+      window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pick', latitude: lat, longitude: lng }));
+    });
+  </script>
+</body>
+</html>`;
+}
+
+function mapsPinUrl(location: QuestLocation) {
+  return `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
+}
+
+function mapsDirectionsUrl(location: QuestLocation) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${location.latitude},${location.longitude}&travelmode=walking`;
+}
 
 const RADAR_THEMES = {
   dark: {
@@ -177,6 +303,89 @@ function AppText({
     >
       {children}
     </Text>
+  );
+}
+
+function InAppMapSheet({
+  visible,
+  mode,
+  location,
+  userCoords,
+  selectionError,
+  onClose,
+  onPickCoordinates,
+}: {
+  visible: boolean;
+  mode: "pick" | "directions";
+  location: QuestLocation;
+  userCoords?: Coordinates;
+  selectionError?: string;
+  onClose: () => void;
+  onPickCoordinates?: (coords: Coordinates) => void;
+}) {
+  const palette = useAppPalette();
+  const mapUrl = mode === "directions" ? mapsDirectionsUrl(location) : mapsPinUrl(location);
+  const pickerHtml = userCoords ? mapPickerHtml(userCoords, location, MAX_QUEST_LOCATION_DISTANCE_METERS) : "";
+  const handleMapMessage = (event: WebViewMessageEvent) => {
+    try {
+      const payload = JSON.parse(event.nativeEvent.data) as { type?: string; latitude?: number; longitude?: number };
+      if (payload.type === "pick" && typeof payload.latitude === "number" && typeof payload.longitude === "number") {
+        onPickCoordinates?.({ latitude: payload.latitude, longitude: payload.longitude });
+      }
+    } catch {
+      // Ignore non-JSON map messages.
+    }
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }}>
+        <View style={{ paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: palette.border, flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Pressable onPress={onClose} style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12 }}>
+            <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18 }}>Close</AppText>
+          </Pressable>
+          <View style={{ flex: 1 }}>
+            <AppText display numberOfLines={1} style={{ color: palette.text, fontSize: 18, lineHeight: 23 }}>
+              {mode === "directions" ? "Directions" : "Pick quest location"}
+            </AppText>
+            <AppText numberOfLines={1} style={{ color: palette.muted, fontSize: 12, lineHeight: 16 }}>
+              {location.name} - {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+            </AppText>
+          </View>
+        </View>
+        <WebView
+          key={`${mode}-${location.latitude}-${location.longitude}`}
+          source={mode === "pick" && userCoords ? { html: pickerHtml, baseUrl: "https://localhost" } : { uri: mapUrl }}
+          onMessage={mode === "pick" ? handleMapMessage : undefined}
+          startInLoadingState
+          style={{ flex: 1, backgroundColor: palette.bg }}
+        />
+        {mode === "pick" ? (
+          <View style={{ borderTopWidth: 1, borderTopColor: palette.border, backgroundColor: palette.bg, padding: 14 }}>
+            {!!selectionError && (
+              <View style={{ backgroundColor: "#ff3b3014", borderWidth: 1, borderColor: "#ff3b3040", borderRadius: 11, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 10 }}>
+                <AppText style={{ color: RD, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>{selectionError}</AppText>
+              </View>
+            )}
+            <AppText numberOfLines={1} style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18 }}>
+              {location.name}
+            </AppText>
+            <AppText style={{ color: palette.muted, fontSize: 12, lineHeight: 16, marginBottom: 10 }}>
+              {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
+            </AppText>
+            <Pressable onPress={onClose} style={{ marginHorizontal: 14, marginTop: 10, minHeight: 50, backgroundColor: OR, borderRadius: 13, alignItems: "center", justifyContent: "center" }}>
+              <AppText display style={{ color: "white", fontSize: 15, lineHeight: 20 }}>Use this location</AppText>
+            </Pressable>
+          </View>
+        ) : (
+          <View style={{ borderTopWidth: 1, borderTopColor: palette.border, backgroundColor: palette.bg, padding: 14 }}>
+            <Pressable onPress={onClose} style={{ minHeight: 50, backgroundColor: TL, borderRadius: 13, alignItems: "center", justifyContent: "center" }}>
+              <AppText display style={{ color: "#07110f", fontSize: 15, lineHeight: 20 }}>Done</AppText>
+            </Pressable>
+          </View>
+        )}
+      </SafeAreaView>
+    </Modal>
   );
 }
 
@@ -467,6 +676,7 @@ export default function App() {
   }
 
   const activeTheme = RADAR_THEMES[theme];
+  const selectedPostedQuest = postedQuests.find((quest) => quest.title === selectedQuestTitle);
   const openQuestDetail = (title: string) => {
     setSelectedQuestTitle(title);
     setScreen("Detail");
@@ -494,7 +704,7 @@ export default function App() {
               />
             )}
             {screen === "Home" && <HomeScreen nav={setScreen} postedQuests={postedQuests} postNotice={postNotice} joinedQuestKeys={joinedQuestKeys} onOpenDetail={openQuestDetail} onJoinQuest={joinQuest} />}
-            {screen === "Detail" && <DetailScreen nav={setScreen} selectedQuestTitle={selectedQuestTitle} joined={joinedQuestKeys.has(selectedQuestTitle)} onJoinQuest={() => joinQuest(selectedQuestTitle)} />}
+            {screen === "Detail" && <DetailScreen nav={setScreen} selectedQuestTitle={selectedQuestTitle} selectedQuest={selectedPostedQuest} joined={joinedQuestKeys.has(selectedQuestTitle)} onJoinQuest={() => joinQuest(selectedQuestTitle)} />}
             {screen === "Chat" && <ChatScreen nav={setScreen} />}
             {screen === "Post" && (
               <PostScreen
@@ -909,6 +1119,7 @@ function RadarScreen({
       >
         {[
           ...postedQuests.map((quest) => ({
+            id: quest.id,
             emoji: quest.emoji,
             label: quest.title,
             distance: quest.distance,
@@ -916,20 +1127,20 @@ function RadarScreen({
             tag: quest.tag,
             joined: true,
           })),
-          { emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
-          { emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
-          { emoji: "⚽", label: "Football", distance: "490m", color: OR, tag: "4/10" },
-          { emoji: "ðŸŽ®", label: "Gaming", distance: "260m", color: PU, tag: "3/8" },
-          { emoji: "ðŸ•", label: "Food Run", distance: "330m", color: YL, tag: "5/12" },
-          { emoji: "ðŸ“š", label: "Study Sprint", distance: "620m", color: TL, tag: "FOCUS" },
-          { emoji: "ðŸ“¸", label: "Sunset Photos", distance: "880m", color: PU, tag: "CREW" },
+          { id: "static-pizza-run", emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
+          { id: "static-coffee", emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
+          { id: "static-football", emoji: "⚽", label: "Football", distance: "490m", color: OR, tag: "4/10" },
+          { id: "static-gaming", emoji: "ðŸŽ®", label: "Gaming", distance: "260m", color: PU, tag: "3/8" },
+          { id: "static-food-run", emoji: "ðŸ•", label: "Food Run", distance: "330m", color: YL, tag: "5/12" },
+          { id: "static-study-sprint", emoji: "ðŸ“š", label: "Study Sprint", distance: "620m", color: TL, tag: "FOCUS" },
+          { id: "static-sunset-photos", emoji: "ðŸ“¸", label: "Sunset Photos", distance: "880m", color: PU, tag: "CREW" },
         ].map((quest) => {
           const full = quest.label === "Football" || quest.label === "Evening Football" || quest.tag.includes("10/10");
           const joined = ("joined" in quest && quest.joined) || joinedQuestKeys.has(quest.label);
 
           return (
           <Pressable
-            key={quest.label}
+            key={quest.id}
             onPress={() => onOpenDetail(quest.label)}
             style={({ pressed }) => ({
               flexDirection: "row",
@@ -1101,9 +1312,9 @@ function HomeScreen({
   const translateX = ticker.interpolate({ inputRange: [0, 1], outputRange: [0, -230] });
   const quests = [
     ...postedQuests,
-    { emoji: "🚲", title: "Bike Ride", place: "Juja Farm Rd", members: 3, max: 6, energy: 4, start: "17:30", full: false },
-    { emoji: "🎲", title: "Board Games", place: "Kahawa Sukari", members: 4, max: 8, energy: 3, start: "19:00", full: false },
-    { emoji: "⚽", title: "Evening Football", place: "JKUAT Grounds", members: 10, max: 10, energy: 2, start: "18:00", full: true },
+    { id: "static-bike-ride", emoji: "🚲", title: "Bike Ride", place: "Juja Farm Rd", members: 3, max: 6, energy: 4, start: "17:30", full: false },
+    { id: "static-board-games", emoji: "🎲", title: "Board Games", place: "Kahawa Sukari", members: 4, max: 8, energy: 3, start: "19:00", full: false },
+    { id: "static-evening-football", emoji: "⚽", title: "Evening Football", place: "JKUAT Grounds", members: 10, max: 10, energy: 2, start: "18:00", full: true },
   ];
 
   return (
@@ -1152,7 +1363,7 @@ function HomeScreen({
       >
         {quests.map((quest) => (
           <QuestCard
-            key={quest.title}
+            key={quest.id}
             quest={quest}
             joined={joinedQuestKeys.has(quest.title)}
             onPress={() => onOpenDetail(quest.title)}
@@ -1279,16 +1490,21 @@ function QuestCard({
 function DetailScreen({
   nav,
   selectedQuestTitle,
+  selectedQuest,
   joined,
   onJoinQuest,
 }: {
   nav: (screen: Screen) => void;
   selectedQuestTitle: string;
+  selectedQuest?: PostedQuest;
   joined: boolean;
   onJoinQuest: () => void;
 }) {
   const palette = useAppPalette();
   const full = selectedQuestTitle === "Football" || selectedQuestTitle === "Evening Football";
+  const questLocation = selectedQuest?.location ?? STATIC_QUEST_LOCATIONS[selectedQuestTitle] ?? DEFAULT_DEMO_LOCATION;
+  const detailStart = selectedQuest?.start ?? "17:30";
+  const [directionsOpen, setDirectionsOpen] = useState(false);
 
   return (
     <ScreenFrame scroll>
@@ -1299,9 +1515,9 @@ function DetailScreen({
         </View>
         <AppText style={{ fontSize: 38, lineHeight: 42, marginBottom: 6 }}>🚲</AppText>
         <AppText display style={{ color: palette.text, fontSize: 20, marginBottom: 2 }}>{selectedQuestTitle}</AppText>
-        <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ Juja Farm Road area</AppText>
+        <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ {questLocation.area} area</AppText>
         <AppText style={{ color: palette.muted2, fontFamily: "Nunito_400Regular", fontSize: 8, marginTop: 1, fontStyle: "italic" }}>
-          Exact location unlocks when you join
+          {joined ? `${questLocation.latitude.toFixed(4)}, ${questLocation.longitude.toFixed(4)}` : "Exact location unlocks when you join"}
         </AppText>
       </View>
       <View style={{ paddingTop: 10 }}>
@@ -1309,7 +1525,7 @@ function DetailScreen({
           {[
             { label: "Squad", value: full ? "10/10" : joined ? "3/6" : "2/6", color: OR },
             { label: "Expires", value: "18h", color: palette.text },
-            { label: "Starts", value: "17:30", color: TL },
+            { label: "Starts", value: detailStart, color: TL },
           ].map((item) => (
             <View key={item.label} style={{ flex: 1, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 10, paddingVertical: 7, paddingHorizontal: 6 }}>
               <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</AppText>
@@ -1340,6 +1556,27 @@ function DetailScreen({
         <View style={{ marginBottom: 8 }}>
           <EnergyBar level={3} />
         </View>
+        <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 9, marginBottom: 8 }}>
+          <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 14, lineHeight: 18, marginBottom: 2 }}>{questLocation.name}</AppText>
+          <AppText style={{ color: palette.muted, fontSize: 12, lineHeight: 16, marginBottom: 8 }}>
+            {joined ? "Exact pin is unlocked for directions." : "Join to unlock directions to the exact pin."}
+          </AppText>
+          <Pressable
+            disabled={!joined}
+            onPress={() => setDirectionsOpen(true)}
+            style={({ pressed }) => ({
+              backgroundColor: joined ? `${TL}18` : palette.surface2,
+              borderWidth: 1,
+              borderColor: joined ? `${TL}40` : palette.border,
+              borderRadius: 8,
+              paddingVertical: 8,
+              alignItems: "center",
+              opacity: !joined ? 0.55 : pressed ? 0.78 : 1,
+            })}
+          >
+            <AppText style={{ color: joined ? TL : palette.muted, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>Open directions in Google Maps</AppText>
+          </Pressable>
+        </View>
         <View style={{ backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 8 }}>
           <AppText style={{ fontSize: 18, marginBottom: 2 }}>💬</AppText>
           <AppText display style={{ color: palette.text, fontSize: 10, marginBottom: 3 }}>Chat unlocks at 3 members</AppText>
@@ -1368,6 +1605,7 @@ function DetailScreen({
           </Pressable>
         )}
       </View>
+      <InAppMapSheet visible={directionsOpen} mode="directions" location={questLocation} onClose={() => setDirectionsOpen(false)} />
     </ScreenFrame>
   );
 }
@@ -1476,33 +1714,123 @@ function PostScreen({
     ["🏊", "Swim"],
   ];
   const [selectedTemplate, setSelectedTemplate] = useState(1);
-  const [placeIndex, setPlaceIndex] = useState(0);
+  const [activityTitle, setActivityTitle] = useState("Football");
   const [maxPeople, setMaxPeople] = useState(10);
   const [notifyFree, setNotifyFree] = useState(true);
+  const [startTime, setStartTime] = useState("18:00");
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState<Coordinates | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<QuestLocation | null>(null);
+  const [locationError, setLocationError] = useState("");
   const selected = templates[selectedTemplate];
-  const placeOptions = ["JKUAT Main Gate", "Juja Farm Rd", "Student Center", "Kahawa Sukari"];
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadLocation() {
+      const permission = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (!mounted) {
+        return;
+      }
+
+      if (permission.status !== "granted") {
+        setLocationError("Allow location access to pick a quest point within 2km.");
+        return;
+      }
+
+      const current = await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.High });
+      if (!mounted) {
+        return;
+      }
+
+      const coords = {
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude,
+      };
+      setUserCoords(coords);
+      setSelectedPlace(await nameLocationFromCoordinates(coords));
+      setLocationError("");
+    }
+
+    loadLocation().catch(() => {
+      if (mounted) {
+        setLocationError("Could not read your current location.");
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  async function nameLocationFromCoordinates(coords: Coordinates): Promise<QuestLocation> {
+    try {
+      const [address] = await ExpoLocation.reverseGeocodeAsync(coords);
+      const name =
+        [address?.name, address?.street]
+          .filter(Boolean)
+          .join(", ") || fallbackLocationName(coords);
+      const area = [address?.district, address?.city, address?.region].filter(Boolean).join(", ") || "Selected pin";
+
+      return { name, area, ...coords };
+    } catch {
+      return { name: fallbackLocationName(coords), area: "Selected pin", ...coords };
+    }
+  }
+
+  async function handlePickCoordinates(coords: Coordinates) {
+    if (!userCoords) {
+      setLocationError("Current location is required before selecting a quest point.");
+      return;
+    }
+
+    const distanceMeters = metersBetween(userCoords, coords);
+    if (distanceMeters > MAX_QUEST_LOCATION_DISTANCE_METERS) {
+      setLocationError(`Pick a point within 2km. This pin is ${formatDistance(distanceMeters)} away.`);
+      return;
+    }
+
+    const namedLocation = await nameLocationFromCoordinates(coords);
+    setSelectedPlace(namedLocation);
+    setLocationError("");
+  }
 
   function postQuest() {
     if (inQuest) {
       return;
     }
 
+    if (!userCoords || !selectedPlace) {
+      setLocationError("Select a quest location within 2km before posting.");
+      setMapPickerOpen(true);
+      return;
+    }
+
     const color = [OR, TL, PU, YL][nextIndex % 4];
+    const distanceMeters = metersBetween(userCoords, selectedPlace);
+    if (distanceMeters > MAX_QUEST_LOCATION_DISTANCE_METERS) {
+      setLocationError(`Pick a point within 2km. This pin is ${formatDistance(distanceMeters)} away.`);
+      setMapPickerOpen(true);
+      return;
+    }
+
+    const radarPosition = radarPositionFromCoordinates(userCoords, selectedPlace);
     onPost({
       id: `posted-${Date.now()}`,
       emoji: selected[0],
-      title: selected[1],
-      place: placeOptions[placeIndex],
+      title: activityTitle.trim() || selected[1],
+      place: selectedPlace.name,
+      location: selectedPlace,
       members: 1,
       max: Math.min(maxPeople, 10),
       energy: 3,
-      start: "18:00",
+      start: startTime.trim() || "18:00",
       full: false,
-      distance: `${260 + nextIndex * 90}m`,
+      distance: formatDistance(distanceMeters),
       color,
       tag: "NEW 1/" + Math.min(maxPeople, 10),
-      angle: (35 + nextIndex * 47) % 360,
-      radius: 72 + (nextIndex % 4) * 18,
+      angle: radarPosition.angle,
+      radius: radarPosition.radius,
     }, notifyFree);
     nav("Home");
   }
@@ -1563,24 +1891,94 @@ function PostScreen({
       <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Quick start</AppText>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
         {templates.map(([emoji, label], index) => (
-          <Pressable key={label} onPress={() => setSelectedTemplate(index)} style={{ width: "24%", backgroundColor: index === selectedTemplate ? "#ff6b2b20" : palette.surface, borderWidth: 1.5, borderColor: index === selectedTemplate ? OR : palette.border, borderRadius: 9, paddingVertical: 5, alignItems: "center" }}>
+          <Pressable
+            key={label}
+            onPress={() => {
+              setSelectedTemplate(index);
+              setActivityTitle(label);
+            }}
+            style={{ width: "24%", backgroundColor: index === selectedTemplate ? "#ff6b2b20" : palette.surface, borderWidth: 1.5, borderColor: index === selectedTemplate ? OR : palette.border, borderRadius: 9, paddingVertical: 5, alignItems: "center" }}
+          >
             <AppText style={{ fontSize: 15, marginBottom: 1 }}>{emoji}</AppText>
             <AppText style={{ color: index === selectedTemplate ? OR : palette.muted2, fontFamily: bodyBold, fontSize: 7 }}>{label}</AppText>
           </Pressable>
         ))}
       </View>
-      <Field label="Activity" value={selected[1]} color={OR} />
-      <Pressable onPress={() => setPlaceIndex((current) => (current + 1) % placeOptions.length)}>
-        <Field label="Location" value={placeOptions[placeIndex]} />
-      </Pressable>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Activity</AppText>
+      <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: OR, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 13, marginBottom: RADAR_LIST_GAP, justifyContent: "center" }}>
+        <TextInput
+          value={activityTitle}
+          onChangeText={setActivityTitle}
+          placeholder="Type any event"
+          placeholderTextColor={palette.muted}
+          maxLength={40}
+          style={{
+            color: palette.text,
+            fontFamily: bodyBold,
+            fontSize: 16,
+            lineHeight: 21,
+            padding: 0,
+            margin: 0,
+          }}
+        />
+        <AppText style={{ color: palette.muted2, fontSize: 13, lineHeight: 18 }}>Quick start only fills this field</AppText>
+      </View>
+      <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Location</AppText>
+      <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 13, marginBottom: RADAR_LIST_GAP, flexDirection: "row", alignItems: "center", gap: 14 }}>
+        <View style={{ width: RADAR_LIST_THUMB_SIZE, height: RADAR_LIST_THUMB_SIZE, borderRadius: 10, backgroundColor: `${PU}20`, alignItems: "center", justifyContent: "center" }}>
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 18, lineHeight: 22 }}>⌖</AppText>
+        </View>
+        <View style={{ flex: 1 }}>
+          <AppText style={{ color: selectedPlace ? palette.text : palette.muted, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>
+            {selectedPlace ? selectedPlace.name : "Getting your location"}
+          </AppText>
+          <AppText style={{ color: palette.muted2, fontSize: 13, lineHeight: 18 }}>
+            {selectedPlace
+              ? `${selectedPlace.latitude.toFixed(4)}, ${selectedPlace.longitude.toFixed(4)}`
+              : "Allow GPS to pick a point within 2km"}
+          </AppText>
+        </View>
+        <Pressable
+          onPress={() => {
+            if (!userCoords || !selectedPlace) {
+              setLocationError("Allow location access before opening the map.");
+              return;
+            }
+            setMapPickerOpen(true);
+          }}
+          style={{ backgroundColor: `${PU}18`, borderWidth: 1, borderColor: `${PU}40`, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10, alignItems: "center", opacity: userCoords && selectedPlace ? 1 : 0.55 }}
+        >
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 12, lineHeight: 16 }}>Map</AppText>
+        </Pressable>
+      </View>
+      {!!locationError && (
+        <View style={{ backgroundColor: "#ff3b3014", borderWidth: 1, borderColor: "#ff3b3040", borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, marginBottom: RADAR_LIST_GAP }}>
+          <AppText style={{ color: RD, fontFamily: bodyBold, fontSize: 13, lineHeight: 18 }}>{locationError}</AppText>
+        </View>
+      )}
       <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Start time</AppText>
       <View style={{ minHeight: RADAR_LIST_ITEM_HEIGHT, backgroundColor: `${TL}10`, borderWidth: 1.5, borderColor: `${TL}40`, borderRadius: 15, paddingVertical: 10, paddingHorizontal: 13, marginBottom: RADAR_LIST_GAP, flexDirection: "row", alignItems: "center", gap: 14 }}>
         <View style={{ width: RADAR_LIST_THUMB_SIZE, height: RADAR_LIST_THUMB_SIZE, borderRadius: 10, backgroundColor: `${TL}20`, alignItems: "center", justifyContent: "center" }}>
           <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 18, lineHeight: 22 }}>▶</AppText>
         </View>
         <View style={{ flex: 1 }}>
-          <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 16, lineHeight: 21 }}>18:00</AppText>
-          <AppText style={{ color: TL, fontSize: 13, lineHeight: 18 }}>Evening start</AppText>
+          <TextInput
+            value={startTime}
+            onChangeText={(value) => setStartTime(value.replace(/[^\d:]/g, "").slice(0, 5))}
+            placeholder="18:00"
+            placeholderTextColor={palette.muted}
+            keyboardType="numbers-and-punctuation"
+            maxLength={5}
+            style={{
+              color: palette.text,
+              fontFamily: bodyBold,
+              fontSize: 16,
+              lineHeight: 21,
+              padding: 0,
+              margin: 0,
+            }}
+          />
+          <AppText style={{ color: TL, fontSize: 13, lineHeight: 18 }}>Tap to edit start time</AppText>
         </View>
       </View>
       <AppText style={{ color: palette.muted, fontFamily: bodyBold, fontSize: 12, lineHeight: 16, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 }}>Squad size</AppText>
@@ -1631,6 +2029,17 @@ function PostScreen({
         <AppText display style={{ color: "white", fontSize: 16, lineHeight: 21 }}>Post Quest</AppText>
       </Pressable>
       </View>
+      {selectedPlace && userCoords && (
+        <InAppMapSheet
+          visible={mapPickerOpen}
+          mode="pick"
+          location={selectedPlace}
+          userCoords={userCoords}
+          selectionError={locationError}
+          onClose={() => setMapPickerOpen(false)}
+          onPickCoordinates={handlePickCoordinates}
+        />
+      )}
     </ScreenFrame>
   );
 }
@@ -1768,8 +2177,8 @@ function ProfileScreen() {
           </View>
           <SectionLabel>Story Cards</SectionLabel>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
-            {cards.map((card) => (
-              <View key={card.title} style={{ width: "49%", backgroundColor: card.gold ? `${YL}12` : card.shared ? palette.surface : palette.ghost, borderWidth: 1, borderColor: card.gold ? `${YL}40` : card.shared ? palette.border : palette.softBorder, borderRadius: 10, padding: 7, alignItems: "center", overflow: "hidden" }}>
+            {cards.map((card, index) => (
+              <View key={`${card.title}-${index}`} style={{ width: "49%", backgroundColor: card.gold ? `${YL}12` : card.shared ? palette.surface : palette.ghost, borderWidth: 1, borderColor: card.gold ? `${YL}40` : card.shared ? palette.border : palette.softBorder, borderRadius: 10, padding: 7, alignItems: "center", overflow: "hidden" }}>
                 {!card.shared && (
                   <View style={{ position: "absolute", inset: 0, backgroundColor: themeOverlayColor(palette), zIndex: 2, alignItems: "center", justifyContent: "center", gap: 1 }}>
                     <AppText style={{ fontSize: 10 }}>🔒</AppText>
