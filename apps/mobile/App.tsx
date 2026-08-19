@@ -35,6 +35,44 @@ const MT2 = "#8888a8";
 const NAV_HEIGHT = 58;
 
 type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
+type ThemeName = "dark" | "light";
+
+const RADAR_THEMES = {
+  dark: {
+    bg: BG,
+    surface: S1,
+    surface2: S2,
+    surface3: S3,
+    text: TX,
+    muted: MT,
+    muted2: MT2,
+    border: S3,
+    softBorder: "#ffffff08",
+    ghost: "#0b0b14",
+    ring: "#ffffff08",
+    ringActive: "#ff6b2b22",
+    label: "#30304a",
+    nav: "#09090fee",
+    navBorder: "rgba(255,255,255,0.08)",
+  },
+  light: {
+    bg: "#f6f7fb",
+    surface: "#ffffff",
+    surface2: "#edf0f7",
+    surface3: "#dce2ee",
+    text: "#161623",
+    muted: "#6d7286",
+    muted2: "#454b61",
+    border: "#dce2ee",
+    softBorder: "#d9deea",
+    ghost: "#e9edf5",
+    ring: "#1b223014",
+    ringActive: "#ff6b2b35",
+    label: "#7f879a",
+    nav: "#fffffff2",
+    navBorder: "rgba(22,22,35,0.1)",
+  },
+};
 
 const USER_TABS: Array<{ id: Screen; icon: string; label: string; fab?: boolean }> = [
   { id: "Radar", icon: "⌖", label: "Radar" },
@@ -131,7 +169,8 @@ function Logo() {
         color: OR,
         fontSize: 18,
         letterSpacing: -1,
-        lineHeight: 22,
+        lineHeight: 24,
+        paddingVertical: 2,
       }}
     >
       SideQuest
@@ -169,12 +208,12 @@ function EnergyBar({ level, color = OR }: { level: number; color?: string }) {
   );
 }
 
-function Header() {
+function Header({ action }: { action?: React.ReactNode }) {
   return (
     <View
       style={{
         paddingHorizontal: 14,
-        paddingTop: 4,
+        paddingTop: 8,
         paddingBottom: 4,
         flexDirection: "row",
         alignItems: "center",
@@ -182,12 +221,67 @@ function Header() {
       }}
     >
       <Logo />
-      <Avatar name="AT" size={26} />
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+        {action}
+        <Avatar name="AT" size={26} />
+      </View>
     </View>
   );
 }
 
-function LiveStrip({ compact = false }: { compact?: boolean }) {
+function ThemeToggle({
+  theme,
+  onPress,
+}: {
+  theme: ThemeName;
+  onPress: () => void;
+}) {
+  const light = theme === "light";
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: light }}
+      accessibilityLabel="Toggle theme"
+      onPress={onPress}
+      style={({ pressed }) => ({
+        width: 46,
+        height: 24,
+        borderRadius: 12,
+        padding: 2,
+        justifyContent: "center",
+        backgroundColor: light ? "#e9edf5" : S2,
+        borderWidth: 1,
+        borderColor: light ? "#d2d8e6" : S3,
+        opacity: pressed ? 0.78 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 18,
+          height: 18,
+          borderRadius: 9,
+          alignItems: "center",
+          justifyContent: "center",
+          alignSelf: light ? "flex-end" : "flex-start",
+          backgroundColor: light ? OR : "#292943",
+        }}
+      >
+        <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 10, lineHeight: 12 }}>
+          {light ? "☀" : "☾"}
+        </AppText>
+      </View>
+    </Pressable>
+  );
+}
+
+function LiveStrip({
+  compact = false,
+  theme = RADAR_THEMES.dark,
+}: {
+  compact?: boolean;
+  theme?: (typeof RADAR_THEMES)[ThemeName];
+}) {
   return (
     <View
       style={{
@@ -196,13 +290,13 @@ function LiveStrip({ compact = false }: { compact?: boolean }) {
         gap: 5,
         paddingVertical: compact ? 3 : 4,
         paddingHorizontal: 14,
-        backgroundColor: S1,
+        backgroundColor: theme.surface,
         borderBottomWidth: 1,
-        borderBottomColor: S3,
+        borderBottomColor: theme.border,
       }}
     >
       <View style={{ width: compact ? 4 : 5, height: compact ? 4 : 5, borderRadius: 3, backgroundColor: OR }} />
-      <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
+      <AppText style={{ color: theme.muted2, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
         <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
           23 people
         </AppText>{" "}
@@ -212,7 +306,7 @@ function LiveStrip({ compact = false }: { compact?: boolean }) {
         )}
       </AppText>
       {!compact && (
-        <AppText style={{ marginLeft: "auto", color: MT, fontFamily: bodyBold, fontSize: 8 }}>
+        <AppText style={{ marginLeft: "auto", color: theme.muted, fontFamily: bodyBold, fontSize: 8 }}>
           Juja
         </AppText>
       )}
@@ -220,11 +314,19 @@ function LiveStrip({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function ScreenFrame({ children, scroll = false }: { children: React.ReactNode; scroll?: boolean }) {
+function ScreenFrame({
+  children,
+  scroll = false,
+  backgroundColor = BG,
+}: {
+  children: React.ReactNode;
+  scroll?: boolean;
+  backgroundColor?: string;
+}) {
   if (scroll) {
     return (
       <ScrollView
-        style={{ flex: 1, backgroundColor: BG }}
+        style={{ flex: 1, backgroundColor }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 26, paddingHorizontal: 12, paddingBottom: 10 }}
       >
@@ -233,11 +335,12 @@ function ScreenFrame({ children, scroll = false }: { children: React.ReactNode; 
     );
   }
 
-  return <View style={{ flex: 1, backgroundColor: BG, paddingTop: 26 }}>{children}</View>;
+  return <View style={{ flex: 1, backgroundColor, paddingTop: 26 }}>{children}</View>;
 }
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>("Radar");
+  const [theme, setTheme] = useState<ThemeName>("dark");
   const [fontsLoaded] = useFonts({
     Nunito_400Regular,
     Nunito_600SemiBold,
@@ -251,12 +354,20 @@ export default function App() {
     return <View style={{ flex: 1, backgroundColor: BG }} />;
   }
 
+  const activeTheme = screen === "Radar" ? RADAR_THEMES[theme] : RADAR_THEMES.dark;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: BG }}>
-      <StatusBar style="light" />
-      <View style={{ flex: 1, backgroundColor: BG }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: activeTheme.bg }}>
+      <StatusBar style={screen === "Radar" && theme === "light" ? "dark" : "light"} />
+      <View style={{ flex: 1, backgroundColor: activeTheme.bg }}>
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: NAV_HEIGHT }}>
-          {screen === "Radar" && <RadarScreen nav={setScreen} />}
+          {screen === "Radar" && (
+            <RadarScreen
+              nav={setScreen}
+              theme={theme}
+              onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
+            />
+          )}
           {screen === "Home" && <HomeScreen nav={setScreen} />}
           {screen === "Detail" && <DetailScreen nav={setScreen} />}
           {screen === "Chat" && <ChatScreen nav={setScreen} />}
@@ -371,8 +482,21 @@ function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => v
   );
 }
 
-function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
+function RadarScreen({
+  nav,
+  theme,
+  onToggleTheme,
+}: {
+  nav: (screen: Screen) => void;
+  theme: ThemeName;
+  onToggleTheme: () => void;
+}) {
   const spin = useRef(new Animated.Value(0)).current;
+  const palette = RADAR_THEMES[theme];
+  const radarSize = 274;
+  const radarViewBoxSize = 230;
+  const radarViewBoxInset = 5;
+  const radarScale = radarSize / radarViewBoxSize;
   const dots = [
     { angle: 40, radius: 70, emoji: "☕", color: OR },
     { angle: 150, radius: 105, emoji: "⚽", color: OR },
@@ -398,12 +522,12 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
   const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
   return (
-    <ScreenFrame>
-      <Header />
-      <LiveStrip />
-      <View style={{ height: 220, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ width: 220, height: 220 }}>
-          <Svg width={220} height={220} viewBox="0 0 220 220">
+    <ScreenFrame backgroundColor={palette.bg}>
+      <Header action={<ThemeToggle theme={theme} onPress={onToggleTheme} />} />
+      <LiveStrip theme={palette} />
+      <View style={{ height: radarSize + 10, paddingVertical: 5, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: radarSize, height: radarSize }}>
+          <Svg width={radarSize} height={radarSize} viewBox="-5 -5 230 230">
             {[35, 63, 90, 112].map((radius, index) => (
               <Circle
                 key={radius}
@@ -411,7 +535,7 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
                 cy="110"
                 r={radius}
                 fill="none"
-                stroke={index === 0 ? "#ff6b2b22" : "#ffffff08"}
+                stroke={index === 0 ? palette.ringActive : palette.ring}
                 strokeWidth={index === 0 ? 1.5 : 1}
                 strokeDasharray={index > 0 ? "4 5" : undefined}
               />
@@ -439,7 +563,7 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
                 x="112"
                 y={110 - [35, 63, 90][index] + 8}
                 fontSize="5.5"
-                fill="#30304a"
+                fill={palette.label}
                 fontWeight="700"
               >
                 {label}
@@ -452,18 +576,18 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
               position: "absolute",
               left: 0,
               top: 0,
-              width: 220,
-              height: 220,
+              width: radarSize,
+              height: radarSize,
               transform: [{ rotate }],
             }}
           >
             <View
               style={{
                 position: "absolute",
-                left: 109,
-                top: 16,
+                left: (109 + radarViewBoxInset) * radarScale,
+                top: (16 + radarViewBoxInset) * radarScale,
                 width: 1.5,
-                height: 94,
+                height: 94 * radarScale,
                 backgroundColor: "#ff6b2b38",
               }}
             />
@@ -479,8 +603,8 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
                 onPress={() => nav("Detail")}
                 style={{
                   position: "absolute",
-                  left: x - 22,
-                  top: y - 22,
+                  left: (x + radarViewBoxInset) * radarScale - 22,
+                  top: (y + radarViewBoxInset) * radarScale - 22,
                   width: 44,
                   height: 44,
                   borderRadius: 22,
@@ -507,7 +631,7 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
               flexDirection: "row",
               alignItems: "center",
               gap: 7,
-              backgroundColor: S1,
+              backgroundColor: palette.surface,
               borderWidth: 1,
               borderColor: `${quest.color}24`,
               borderRadius: 11,
@@ -518,10 +642,10 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
           >
             <AppText style={{ fontSize: 16 }}>{quest.emoji}</AppText>
             <View style={{ flex: 1 }}>
-              <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 10 }}>{quest.label}</AppText>
+              <AppText style={{ color: palette.text, fontFamily: bodyBold, fontSize: 10 }}>{quest.label}</AppText>
               <AppText style={{ color: quest.color, fontFamily: bodyBold, fontSize: 7.5 }}>{quest.tag}</AppText>
             </View>
-            <AppText style={{ color: MT, fontSize: 8.5, marginRight: 3 }}>{quest.distance}</AppText>
+            <AppText style={{ color: palette.muted, fontSize: 8.5, marginRight: 3 }}>{quest.distance}</AppText>
             <View style={{ paddingVertical: 3, paddingHorizontal: 9, backgroundColor: quest.color, borderRadius: 7 }}>
               <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8 }}>Join</AppText>
             </View>
@@ -532,9 +656,9 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
             flexDirection: "row",
             alignItems: "center",
             gap: 7,
-            backgroundColor: "#0b0b14",
+            backgroundColor: palette.ghost,
             borderWidth: 1,
-            borderColor: "#ffffff08",
+            borderColor: palette.softBorder,
             borderRadius: 11,
             paddingVertical: 6,
             paddingHorizontal: 9,
@@ -546,7 +670,7 @@ function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
             <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride · ended 22 min ago</AppText>
             <AppText style={{ color: MT, fontSize: 8 }}>5 people · dissolved</AppText>
           </View>
-          <View style={{ backgroundColor: S2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
+          <View style={{ backgroundColor: palette.surface2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
             <AppText style={{ color: MT, fontSize: 8 }}>ghost</AppText>
           </View>
         </View>
