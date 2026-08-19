@@ -1,365 +1,386 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useFonts } from "expo-font";
+import {
+  Nunito_400Regular,
+  Nunito_600SemiBold,
+  Nunito_700Bold,
+  Nunito_800ExtraBold,
+} from "@expo-google-fonts/nunito";
+import { Syne_700Bold, Syne_800ExtraBold } from "@expo-google-fonts/syne";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Easing,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
   Pressable,
   SafeAreaView,
   ScrollView,
   Text,
-  TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
-import Svg, {
-  Circle,
-  Defs,
-  G,
-  Line,
-  Path,
-  RadialGradient,
-  Stop,
-  Text as SvgText,
-} from "react-native-svg";
-import { WebView } from "react-native-webview";
+import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 
-const COLORS = {
-  orange: "#ff6b2b",
-  teal: "#00d4aa",
-  purple: "#a78bfa",
-  red: "#ff3b30",
-  gold: "#fbbf24",
-};
+const OR = "#ff6b2b";
+const TL = "#00d4aa";
+const PU = "#a78bfa";
+const YL = "#fbbf24";
+const RD = "#ff3b30";
+const BG = "#07070f";
+const S1 = "#10101a";
+const S2 = "#181826";
+const S3 = "#22223a";
+const TX = "#f0f0f8";
+const MT = "#55557a";
+const MT2 = "#8888a8";
+const NAV_HEIGHT = 58;
 
-const QUESTS = [
-  {
-    id: "pizza-run",
-    emoji: "⚡",
-    title: "Pizza Run",
-    distance: 195,
-    angle: 185,
-    radius: 70,
-    color: COLORS.red,
-    tag: "FLASH",
-    time: "18 min",
-    members: 3,
-    max: 5,
-    place: "Juja City Mall side gate",
-    energy: 4,
-  },
-  {
-    id: "coffee",
-    emoji: "☕",
-    title: "Coffee",
-    distance: 210,
-    angle: 40,
-    radius: 70,
-    color: COLORS.orange,
-    tag: "2/6",
-    time: "Starts 17:20",
-    members: 2,
-    max: 6,
-    place: "Gate C cafes",
-    energy: 2,
-  },
-  {
-    id: "football",
-    emoji: "⚽",
-    title: "Football",
-    distance: 490,
-    angle: 150,
-    radius: 105,
-    color: COLORS.orange,
-    tag: "4/10",
-    time: "Starts 18:00",
-    members: 4,
-    max: 10,
-    place: "JKUAT grounds",
-    energy: 3,
-  },
-  {
-    id: "blood-drive",
-    emoji: "🩸",
-    title: "Blood Drive",
-    distance: 860,
-    angle: 80,
-    radius: 128,
-    color: COLORS.teal,
-    tag: "COMMUNITY",
-    time: "Open now",
-    members: 18,
-    max: 80,
-    place: "Student center",
-    energy: 4,
-  },
-  {
-    id: "board-games",
-    emoji: "🎲",
-    title: "Board Games",
-    distance: 1200,
-    angle: 230,
-    radius: 128,
-    color: COLORS.purple,
-    tag: "WILD",
-    time: "Starts 19:00",
-    members: 4,
-    max: 8,
-    place: "Kahawa Sukari",
-    energy: 3,
-  },
-  {
-    id: "evening-run",
-    emoji: "🏃",
-    title: "Evening Run",
-    distance: 760,
-    angle: 310,
-    radius: 105,
-    color: COLORS.orange,
-    tag: "3/7",
-    time: "Starts 17:45",
-    members: 3,
-    max: 7,
-    place: "Juja Farm Road",
-    energy: 2,
-  },
-  {
-    id: "study-sprint",
-    emoji: "📚",
-    title: "Study Sprint",
-    distance: 160,
-    angle: 265,
-    radius: 58,
-    color: COLORS.teal,
-    tag: "FOCUS",
-    time: "Starts 16:40",
-    members: 5,
-    max: 12,
-    place: "Library quiet wing",
-    energy: 2,
-  },
-  {
-    id: "taco-pop",
-    emoji: "🌮",
-    title: "Taco Pop-up",
-    distance: 330,
-    angle: 115,
-    radius: 88,
-    color: COLORS.gold,
-    tag: "FOOD",
-    time: "Open 20 min",
-    members: 7,
-    max: 14,
-    place: "Main gate stalls",
-    energy: 3,
-  },
-  {
-    id: "sunset-photos",
-    emoji: "📸",
-    title: "Sunset Photos",
-    distance: 640,
-    angle: 350,
-    radius: 112,
-    color: COLORS.purple,
-    tag: "CREW",
-    time: "Starts 18:25",
-    members: 3,
-    max: 6,
-    place: "Rooftop hostel B",
-    energy: 3,
-  },
-  {
-    id: "hack-night",
-    emoji: "💻",
-    title: "Hack Night",
-    distance: 980,
-    angle: 20,
-    radius: 134,
-    color: COLORS.teal,
-    tag: "BUILD",
-    time: "Starts 20:00",
-    members: 9,
-    max: 18,
-    place: "Innovation lab",
-    energy: 4,
-  },
-  {
-    id: "karaoke",
-    emoji: "🎤",
-    title: "Karaoke",
-    distance: 1450,
-    angle: 205,
-    radius: 138,
-    color: COLORS.red,
-    tag: "LOUD",
-    time: "Starts 21:30",
-    members: 6,
-    max: 20,
-    place: "Juja Square lounge",
-    energy: 4,
-  },
-  {
-    id: "chess-corner",
-    emoji: "♟",
-    title: "Chess Corner",
-    distance: 520,
-    angle: 292,
-    radius: 96,
-    color: COLORS.gold,
-    tag: "1/8",
-    time: "Open now",
-    members: 1,
-    max: 8,
-    place: "Student center steps",
-    energy: 1,
-  },
+type Screen = "Radar" | "Home" | "Detail" | "Chat" | "Post" | "I'm Free" | "Profile";
+
+const USER_TABS: Array<{ id: Screen; icon: string; label: string; fab?: boolean }> = [
+  { id: "Radar", icon: "⌖", label: "Radar" },
+  { id: "Home", icon: "⌂", label: "Home" },
+  { id: "Post", icon: "+", label: "Post", fab: true },
+  { id: "I'm Free", icon: "⚡", label: "Free" },
+  { id: "Profile", icon: "◉", label: "Me" },
 ];
 
-type ThemeName = "dark" | "light";
-type Quest = (typeof QUESTS)[number];
-type HomeTab = "quests" | "community";
-type UserScreen = "radar" | "home" | "detail" | "chat" | "post" | "free" | "profile";
+const SUB_SCREENS: Screen[] = ["Detail", "Chat"];
 
-const QUEST_EMOJI_OPTIONS = ["⚡", "☕", "⚽", "📚", "🍕", "🎤", "💻", "📸"];
-const QUEST_POST_COOLDOWN_MS = 4 * 60 * 60 * 1000;
+const displayFont = "Syne_800ExtraBold";
+const displayFontAlt = "Syne_700Bold";
+const bodyFont = "Nunito_600SemiBold";
+const bodyBold = "Nunito_800ExtraBold";
 
-function formatCooldown(milliseconds: number) {
-  const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60000));
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
+function AppText({
+  children,
+  style,
+  display,
+}: {
+  children: React.ReactNode;
+  style?: object;
+  display?: boolean;
+}) {
+  return (
+    <Text style={[{ fontFamily: display ? displayFont : bodyFont, color: TX }, style]}>
+      {children}
+    </Text>
+  );
+}
 
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+function getAvatar(name: string) {
+  if (name === "You" || name === "AT" || name === "Atacama") {
+    return { colors: ["#7c3aed", "#a78bfa"] as const, init: "AT" };
+  }
+  if (name.toLowerCase().includes("red") || name.toLowerCase().includes("rc")) {
+    return { colors: ["#00d4aa", "#009977"] as const, init: name.slice(0, 2).toUpperCase() };
   }
 
-  return `${minutes}m`;
+  const palettes = [
+    ["#3b82f6", "#818cf8"],
+    ["#ec4899", "#f472b6"],
+    ["#10b981", "#34d399"],
+    ["#f59e0b", "#fbbf24"],
+  ] as const;
+  const picked = palettes[name.charCodeAt(0) % palettes.length];
+  const init = name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return { colors: picked, init };
 }
 
-const VIEWER_LOCATION = {
-  name: "Your current area",
-  latitude: -1.1018,
-  longitude: 37.0144,
-};
+function Avatar({ name, size = 26 }: { name: string; size?: number }) {
+  const avatar = getAvatar(name);
 
-const LOCATION_OPTIONS = [
-  { name: "Garden City Mall", detail: "Thika Road, Nairobi", latitude: -1.2322, longitude: 36.8785 },
-  { name: "Juja City Mall", detail: "Juja town", latitude: -1.1004, longitude: 37.0132 },
-  { name: "JKUAT Main Gate", detail: "Juja campus entrance", latitude: -1.0958, longitude: 37.0128 },
-  { name: "Student Center", detail: "JKUAT campus", latitude: -1.0897, longitude: 37.0102 },
-  { name: "Kahawa Sukari", detail: "Kahawa Sukari estate", latitude: -1.1928, longitude: 36.9306 },
-];
-
-type LocationOption = (typeof LOCATION_OPTIONS)[number];
-
-function getDistanceMeters(from: typeof VIEWER_LOCATION, to: LocationOption) {
-  const earthRadiusMeters = 6371000;
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const deltaLat = toRadians(to.latitude - from.latitude);
-  const deltaLon = toRadians(to.longitude - from.longitude);
-  const lat1 = toRadians(from.latitude);
-  const lat2 = toRadians(to.latitude);
-  const haversine =
-    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-
-  return Math.round(earthRadiusMeters * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine)));
+  return (
+    <LinearGradient
+      colors={avatar.colors}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <AppText
+        style={{
+          color: "white",
+          fontFamily: bodyBold,
+          fontSize: Math.floor(size * 0.33),
+          lineHeight: Math.floor(size * 0.42),
+        }}
+      >
+        {avatar.init}
+      </AppText>
+    </LinearGradient>
+  );
 }
 
-function getQuestHeadcount(quest: Quest, joined: boolean) {
-  return Math.min(quest.members + (joined ? 1 : 0), quest.max);
+function Logo() {
+  return (
+    <AppText
+      display
+      style={{
+        color: OR,
+        fontSize: 18,
+        letterSpacing: -1,
+        lineHeight: 22,
+      }}
+    >
+      SideQuest
+    </AppText>
+  );
 }
 
-function isQuestPassed(quest: Quest) {
-  const normalizedTime = quest.time.toLowerCase();
+function EnergyBar({ level, color = OR }: { level: number; color?: string }) {
+  const label = ["", "Low", "Med", "High", ""][level] || "High";
 
-  if (
-    normalizedTime.includes("ended") ||
-    normalizedTime.includes("passed") ||
-    normalizedTime.includes("closed")
-  ) {
-    return true;
+  return (
+    <View style={{ flexDirection: "row", gap: 3, alignItems: "center" }}>
+      {[1, 2, 3, 4].map((step) => (
+        <View
+          key={step}
+          style={{
+            width: 12,
+            height: 3.5,
+            borderRadius: 2,
+            backgroundColor: step <= level ? color : S3,
+          }}
+        />
+      ))}
+      <AppText
+        style={{
+          color: level >= 3 ? color : MT,
+          fontFamily: bodyBold,
+          fontSize: 8,
+          marginLeft: 2,
+        }}
+      >
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+function Header() {
+  return (
+    <View
+      style={{
+        paddingHorizontal: 14,
+        paddingTop: 4,
+        paddingBottom: 4,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+      }}
+    >
+      <Logo />
+      <Avatar name="AT" size={26} />
+    </View>
+  );
+}
+
+function LiveStrip({ compact = false }: { compact?: boolean }) {
+  return (
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 5,
+        paddingVertical: compact ? 3 : 4,
+        paddingHorizontal: 14,
+        backgroundColor: S1,
+        borderBottomWidth: 1,
+        borderBottomColor: S3,
+      }}
+    >
+      <View style={{ width: compact ? 4 : 5, height: compact ? 4 : 5, borderRadius: 3, backgroundColor: OR }} />
+      <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
+        <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: compact ? 8.5 : 9 }}>
+          23 people
+        </AppText>{" "}
+        active {compact ? "in Juja" : "· "}
+        {!compact && (
+          <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 9 }}>6 quests</AppText>
+        )}
+      </AppText>
+      {!compact && (
+        <AppText style={{ marginLeft: "auto", color: MT, fontFamily: bodyBold, fontSize: 8 }}>
+          Juja
+        </AppText>
+      )}
+    </View>
+  );
+}
+
+function ScreenFrame({ children, scroll = false }: { children: React.ReactNode; scroll?: boolean }) {
+  if (scroll) {
+    return (
+      <ScrollView
+        style={{ flex: 1, backgroundColor: BG }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 26, paddingHorizontal: 12, paddingBottom: 10 }}
+      >
+        {children}
+      </ScrollView>
+    );
   }
 
-  const startMatch = normalizedTime.match(/starts\s+(\d{1,2}):(\d{2})/);
-  if (!startMatch) {
-    return false;
-  }
-
-  const startsAt = Number(startMatch[1]) * 60 + Number(startMatch[2]);
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  return currentMinutes > startsAt;
+  return <View style={{ flex: 1, backgroundColor: BG, paddingTop: 26 }}>{children}</View>;
 }
-
-const themeTokens = {
-  dark: {
-    app: "#03030a",
-    screen: "#07070f",
-    surface: "#10101a",
-    surface2: "#181826",
-    surface3: "#22223a",
-    text: "#f0f0f8",
-    textSoft: "#d8d8e8",
-    muted: "#8888a8",
-    muted2: "#55557a",
-    border: "rgba(255,255,255,0.08)",
-    borderStrong: "#22223a",
-    cardWash: "rgba(255,255,255,0.045)",
-    radarRing: "rgba(0,212,170,0.24)",
-    radarAxis: "rgba(255,107,43,0.14)",
-    radarLabel: "#ffffff",
-    dotCore: "rgba(7,7,15,0.9)",
-    ghost: "#0b0b14",
-    bottom: "rgba(7,7,15,0.94)",
-  },
-  light: {
-    app: "#e8f0f7",
-    screen: "#f8fbff",
-    surface: "#ffffff",
-    surface2: "#eef4fb",
-    surface3: "#dce7f2",
-    text: "#151722",
-    textSoft: "#283047",
-    muted: "#667089",
-    muted2: "#7f8aa3",
-    border: "rgba(22,34,58,0.12)",
-    borderStrong: "#dce7f2",
-    cardWash: "rgba(21,28,45,0.045)",
-    radarRing: "rgba(26,38,64,0.12)",
-    radarAxis: "rgba(26,38,64,0.08)",
-    radarLabel: "#000000",
-    dotCore: "rgba(255,255,255,0.94)",
-    ghost: "#eef3f8",
-    bottom: "rgba(248,251,255,0.94)",
-  },
-};
 
 export default function App() {
-  const [liveQuests, setLiveQuests] = useState<Quest[]>(() => QUESTS);
-  const [selectedId, setSelectedId] = useState("pizza-run");
-  const [joined, setJoined] = useState<Set<string>>(() => new Set());
-  const [freeActive, setFreeActive] = useState(false);
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [locationPickerOpen, setLocationPickerOpen] = useState(false);
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const [nextQuestPostAt, setNextQuestPostAt] = useState(0);
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftPlace, setDraftPlace] = useState("");
-  const [draftTime, setDraftTime] = useState("");
-  const [draftTag, setDraftTag] = useState("");
-  const [draftDistance, setDraftDistance] = useState("250");
-  const [draftLocation, setDraftLocation] = useState<LocationOption | null>(null);
-  const [draftMaxPeople, setDraftMaxPeople] = useState("4");
-  const [draftEmoji, setDraftEmoji] = useState(QUEST_EMOJI_OPTIONS[0]);
-  const [homeTab, setHomeTab] = useState<HomeTab>("quests");
-  const [userScreen, setUserScreen] = useState<UserScreen>("home");
-  const [theme, setTheme] = useState<ThemeName>("dark");
+  const [screen, setScreen] = useState<Screen>("Radar");
+  const [fontsLoaded] = useFonts({
+    Nunito_400Regular,
+    Nunito_600SemiBold,
+    Nunito_700Bold,
+    Nunito_800ExtraBold,
+    Syne_700Bold,
+    Syne_800ExtraBold,
+  });
+
+  if (!fontsLoaded) {
+    return <View style={{ flex: 1, backgroundColor: BG }} />;
+  }
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: BG }}>
+      <StatusBar style="light" />
+      <View style={{ flex: 1, backgroundColor: BG }}>
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: NAV_HEIGHT }}>
+          {screen === "Radar" && <RadarScreen nav={setScreen} />}
+          {screen === "Home" && <HomeScreen nav={setScreen} />}
+          {screen === "Detail" && <DetailScreen nav={setScreen} />}
+          {screen === "Chat" && <ChatScreen nav={setScreen} />}
+          {screen === "Post" && <PostScreen nav={setScreen} />}
+          {screen === "I'm Free" && <FreeScreen nav={setScreen} />}
+          {screen === "Profile" && <ProfileScreen />}
+        </View>
+        <BottomNav screen={screen} nav={setScreen} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function BottomNav({ screen, nav }: { screen: Screen; nav: (screen: Screen) => void }) {
+  return (
+    <View
+      style={{
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: NAV_HEIGHT,
+        backgroundColor: "#09090fee",
+        borderTopWidth: 1,
+        borderTopColor: "rgba(255,255,255,0.08)",
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-around",
+        paddingBottom: 4,
+        zIndex: 40,
+      }}
+    >
+      {USER_TABS.map((tab) => {
+        const isActive =
+          screen === tab.id || (tab.id === "Home" && SUB_SCREENS.includes(screen));
+
+        if (tab.fab) {
+          return (
+            <Pressable
+              key={tab.id}
+              accessibilityRole="button"
+              onPress={() => nav(tab.id)}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 44,
+                borderRadius: 14,
+                marginTop: -10,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: OR,
+                transform: [{ scale: screen === tab.id || pressed ? 0.94 : 1 }],
+                shadowColor: OR,
+                shadowOpacity: 0.5,
+                shadowRadius: 16,
+                shadowOffset: { width: 0, height: 4 },
+                elevation: 8,
+              })}
+            >
+              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 24, lineHeight: 28 }}>
+                +
+              </AppText>
+            </Pressable>
+          );
+        }
+
+        return (
+          <Pressable
+            key={tab.id}
+            accessibilityRole="button"
+            onPress={() => nav(tab.id)}
+            style={({ pressed }) => ({
+              minWidth: 50,
+              paddingVertical: 4,
+              paddingHorizontal: 8,
+              borderRadius: 10,
+              alignItems: "center",
+              gap: 2,
+              opacity: isActive ? 1 : pressed ? 0.65 : 0.45,
+              transform: [{ scale: isActive ? 1.05 : 1 }],
+            })}
+          >
+            <AppText style={{ color: isActive ? OR : MT2, fontFamily: bodyBold, fontSize: 24, lineHeight: 24 }}>
+              {tab.icon}
+            </AppText>
+            <AppText
+              style={{
+                color: isActive ? OR : MT,
+                fontFamily: bodyBold,
+                fontSize: 8,
+                letterSpacing: 0.3,
+              }}
+            >
+              {tab.label}
+            </AppText>
+            {isActive && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: OR, marginTop: 1 }} />}
+          </Pressable>
+        );
+      })}
+      <View
+        style={{
+          position: "absolute",
+          bottom: 7,
+          left: "50%",
+          width: 90,
+          height: 3.5,
+          marginLeft: -45,
+          borderRadius: 2,
+          backgroundColor: "#1e1e32",
+        }}
+      />
+    </View>
+  );
+}
+
+function RadarScreen({ nav }: { nav: (screen: Screen) => void }) {
   const spin = useRef(new Animated.Value(0)).current;
-  const nextQuestPostAtRef = useRef(0);
-  const { width, height } = useWindowDimensions();
+  const dots = [
+    { angle: 40, radius: 70, emoji: "☕", color: OR },
+    { angle: 150, radius: 105, emoji: "⚽", color: OR },
+    { angle: 230, radius: 128, emoji: "🎲", color: PU },
+    { angle: 310, radius: 105, emoji: "🏃", color: OR },
+    { angle: 80, radius: 128, emoji: "🩸", color: TL },
+    { angle: 185, radius: 70, emoji: "⚡", color: RD },
+  ];
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -367,2376 +388,714 @@ export default function App() {
         toValue: 1,
         duration: 8000,
         easing: Easing.linear,
-        isInteraction: false,
         useNativeDriver: true,
       }),
     );
-
     loop.start();
     return () => loop.stop();
   }, [spin]);
 
-  useEffect(() => {
-    const interval = setInterval(() => setNowMs(Date.now()), 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const palette = themeTokens[theme];
-  const statusTopPadding = Platform.OS === "android" ? 8 : 0;
-  const radarPanelHeight = Math.floor(height * 0.4);
-  const radarSize = Math.min(width - 44, radarPanelHeight - 16);
-  const sortedQuests = useMemo(
-    () => [...liveQuests].sort((a, b) => a.distance - b.distance),
-    [liveQuests],
-  );
-  const homeQuests = useMemo(() => {
-    if (homeTab === "community") {
-      return sortedQuests.filter((quest) =>
-        ["COMMUNITY", "FOCUS", "BUILD", "CREW"].includes(quest.tag),
-      );
-    }
-
-    return sortedQuests;
-  }, [homeTab, sortedQuests]);
-  const radarQuests = useMemo(
-    () =>
-      liveQuests.filter((quest) => {
-        const full = getQuestHeadcount(quest, joined.has(quest.id)) >= quest.max;
-        return !full && !isQuestPassed(quest);
-      }),
-    [joined, liveQuests],
-  );
-  const selected = liveQuests.find((quest) => quest.id === selectedId) ?? liveQuests[0];
-  const questPostRemainingMs = Math.max(0, nextQuestPostAt - nowMs);
-  const questPostOnCooldown = questPostRemainingMs > 0;
-  const questPostCooldownLabel = formatCooldown(questPostRemainingMs);
-  const spinStyle = {
-    transform: [
-      {
-        rotate: spin.interpolate({
-          inputRange: [0, 1],
-          outputRange: ["0deg", "360deg"],
-        }),
-      },
-    ],
-  };
-
-  function toggleJoin(questId: string) {
-    setJoined((current) => {
-      const quest = liveQuests.find((item) => item.id === questId);
-      const next = new Set(current);
-
-      if (next.has(questId)) {
-        next.delete(questId);
-      } else {
-        if (quest && getQuestHeadcount(quest, false) >= quest.max) {
-          return current;
-        }
-        next.add(questId);
-      }
-      return next;
-    });
-  }
-
-  function resetDraft() {
-    setDraftTitle("");
-    setDraftPlace("");
-    setDraftTime("");
-    setDraftTag("");
-    setDraftDistance("250");
-    setDraftLocation(null);
-    setDraftMaxPeople("4");
-    setDraftEmoji(QUEST_EMOJI_OPTIONS[0]);
-  }
-
-  function selectLocation(location: LocationOption) {
-    const distance = getDistanceMeters(VIEWER_LOCATION, location);
-
-    setDraftLocation(location);
-    setDraftPlace(location.name);
-    setDraftDistance(String(distance));
-    setLocationPickerOpen(false);
-  }
-
-  function createQuest() {
-    const createdAt = Date.now();
-    const title = draftTitle.trim();
-    const place = draftPlace.trim();
-
-    if (nextQuestPostAtRef.current > createdAt || !title || !place) {
-      return;
-    }
-
-    const nextIndex = liveQuests.length;
-    const parsedDistance = Number.parseInt(draftDistance.replace(/\D/g, ""), 10);
-    const distance = Number.isFinite(parsedDistance)
-      ? Math.max(80, Math.min(parsedDistance, 2000))
-      : 250;
-    const parsedMax = Number.parseInt(draftMaxPeople.replace(/\D/g, ""), 10);
-    const maxPeople = Number.isFinite(parsedMax) ? Math.max(1, Math.min(parsedMax, 50)) : 4;
-    const radius = Math.max(52, Math.min(138, 48 + distance / 14));
-    const newQuest: Quest = {
-      id: `user-quest-${createdAt}`,
-      emoji: draftEmoji,
-      title,
-      distance,
-      angle: (nextIndex * 47 + 32) % 360,
-      radius,
-      color: [COLORS.orange, COLORS.teal, COLORS.purple, COLORS.gold, COLORS.red][
-        nextIndex % 5
-      ],
-      tag: draftTag.trim().toUpperCase() || "NEW",
-      time: draftTime.trim() || "Open now",
-      members: 1,
-      max: maxPeople,
-      place,
-      energy: 3,
-    };
-
-    setLiveQuests((current) => [newQuest, ...current]);
-    setSelectedId(newQuest.id);
-    nextQuestPostAtRef.current = createdAt + QUEST_POST_COOLDOWN_MS;
-    setNextQuestPostAt(createdAt + QUEST_POST_COOLDOWN_MS);
-    setNowMs(createdAt);
-    setComposerOpen(false);
-    resetDraft();
-  }
-
-  function openQuestDetail(questId: string) {
-    setSelectedId(questId);
-    setUserScreen("detail");
-  }
-
-  function openPostComposer() {
-    if (!questPostOnCooldown) {
-      setComposerOpen(true);
-    }
-  }
+  const rotate = spin.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.screen }}>
-      <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      <View style={{ flex: 1, paddingTop: statusTopPadding, backgroundColor: palette.screen }}>
-        {userScreen === "radar" && (
-          <RadarScreen
-            quests={radarQuests}
-            sortedQuests={sortedQuests}
-            selected={selected}
-            joined={joined}
-            palette={palette}
-            theme={theme}
-            freeActive={freeActive}
-            questCount={liveQuests.length}
-            radarPanelHeight={radarPanelHeight}
-            radarSize={radarSize}
-            spinStyle={spinStyle}
-            onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-            onSelectQuest={setSelectedId}
-            onOpenDetail={openQuestDetail}
-            onOpenProfile={() => setUserScreen("profile")}
-            onJoin={toggleJoin}
-          />
-        )}
-
-        {userScreen === "home" && (
-          <HomeScreen
-            quests={homeQuests}
-            selectedId={selected.id}
-            joined={joined}
-            freeActive={freeActive}
-            questCount={liveQuests.length}
-            homeTab={homeTab}
-            theme={theme}
-            palette={palette}
-            onSetHomeTab={setHomeTab}
-            onOpenDetail={openQuestDetail}
-            onOpenProfile={() => setUserScreen("profile")}
-            onJoin={toggleJoin}
-            onToggleTheme={() => setTheme((current) => (current === "dark" ? "light" : "dark"))}
-          />
-        )}
-
-        {userScreen === "detail" && (
-          <QuestDetailScreen
-            quest={selected}
-            joined={joined.has(selected.id)}
-            palette={palette}
-            onBack={() => setUserScreen("home")}
-            onJoin={() => toggleJoin(selected.id)}
-          />
-        )}
-
-        {userScreen === "chat" && <ChatScreen quest={selected} palette={palette} />}
-        {userScreen === "post" && (
-          <PostScreen
-            palette={palette}
-            cooldownLabel={questPostCooldownLabel}
-            onCooldown={questPostOnCooldown}
-            onOpenComposer={openPostComposer}
-          />
-        )}
-        {userScreen === "free" && (
-          <FreeScreen
-            palette={palette}
-            active={freeActive}
-            onToggle={() => setFreeActive((active) => !active)}
-          />
-        )}
-        {userScreen === "profile" && <ProfileScreen palette={palette} />}
-
-        <BottomMenu
-          activeScreen={userScreen}
-          palette={palette}
-          onSelect={setUserScreen}
-        />
-
-        <PostQuestModal
-          visible={composerOpen}
-          palette={palette}
-          title={draftTitle}
-          place={draftPlace}
-          time={draftTime}
-          tag={draftTag}
-          distance={draftLocation ? draftDistance : ""}
-          maxPeople={draftMaxPeople}
-          emoji={draftEmoji}
-          onChangeTitle={setDraftTitle}
-          onChangeTime={setDraftTime}
-          onChangeTag={setDraftTag}
-          onChangeMaxPeople={setDraftMaxPeople}
-          onChangeEmoji={setDraftEmoji}
-          onOpenLocation={() => setLocationPickerOpen(true)}
-          onClose={() => setComposerOpen(false)}
-          onSubmit={createQuest}
-        />
-        <LocationPickerModal
-          visible={locationPickerOpen}
-          palette={palette}
-          selectedLocation={draftLocation}
-          onSelect={selectLocation}
-          onClose={() => setLocationPickerOpen(false)}
-        />
-      </View>
-    </SafeAreaView>
-  );
-}
-
-function BottomMenu({
-  activeScreen,
-  palette,
-  onSelect,
-}: {
-  activeScreen: UserScreen;
-  palette: (typeof themeTokens)[ThemeName];
-  onSelect: (screen: UserScreen) => void;
-}) {
-  const items: Array<{ screen: UserScreen; icon: string; label: string; color: string }> = [
-    { screen: "radar", icon: "⌖", label: "Radar", color: COLORS.orange },
-    { screen: "home", icon: "🔥", label: "Home", color: COLORS.orange },
-    { screen: "detail", icon: "◇", label: "Details", color: COLORS.teal },
-    { screen: "chat", icon: "💬", label: "Chat", color: COLORS.teal },
-    { screen: "post", icon: "+", label: "Post", color: COLORS.orange },
-    { screen: "free", icon: "⚡", label: "Free", color: COLORS.purple },
-  ];
-
-  return (
-    <View
-      style={{
-        position: "absolute",
-        left: 8,
-        right: 8,
-        bottom: 8,
-        minHeight: 64,
-        borderRadius: 18,
-        backgroundColor: palette.bottom,
-        borderWidth: 1,
-        borderColor: palette.border,
-        overflow: "hidden",
-      }}
-    >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 4, paddingHorizontal: 7, paddingVertical: 7 }}
-      >
-        {items.map((item) => {
-          const active = item.screen === activeScreen;
-
-          return (
-            <Pressable
-              key={item.screen}
-              accessibilityRole="button"
-              onPress={() => onSelect(item.screen)}
-              style={({ pressed }) => ({
-                width: 64,
-                minHeight: 50,
-                borderRadius: 14,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: active ? `${item.color}22` : "transparent",
-                borderWidth: 1,
-                borderColor: active ? `${item.color}66` : "transparent",
-                opacity: pressed ? 0.72 : 1,
-              })}
-            >
-              <Text style={{ color: active ? item.color : palette.textSoft, fontSize: item.icon === "AT" ? 13 : 18, fontWeight: "900" }}>
-                {item.icon}
-              </Text>
-              <Text style={{ color: active ? item.color : palette.muted, fontSize: 10, fontWeight: "900", marginTop: 2 }}>
-                {item.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-function HomeScreen({
-  quests,
-  selectedId,
-  joined,
-  freeActive,
-  questCount,
-  homeTab,
-  theme,
-  palette,
-  onSetHomeTab,
-  onOpenDetail,
-  onOpenProfile,
-  onJoin,
-  onToggleTheme,
-}: {
-  quests: Quest[];
-  selectedId: string;
-  joined: Set<string>;
-  freeActive: boolean;
-  questCount: number;
-  homeTab: HomeTab;
-  theme: ThemeName;
-  palette: (typeof themeTokens)[ThemeName];
-  onSetHomeTab: (tab: HomeTab) => void;
-  onOpenDetail: (questId: string) => void;
-  onOpenProfile: () => void;
-  onJoin: (questId: string) => void;
-  onToggleTheme: () => void;
-}) {
-  return (
-    <>
-      <View
-        style={{
-          paddingHorizontal: 18,
-          paddingTop: 18,
-          paddingBottom: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <View>
-          <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 }}>
-            JUJA LIVE
-          </Text>
-          <Text style={{ color: COLORS.orange, fontSize: 39, fontWeight: "900", letterSpacing: -2 }}>
-            SideQuest
-          </Text>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <CircleButton
-            label={theme === "dark" ? "☀" : "☾"}
-            color={COLORS.gold}
-            palette={palette}
-            onPress={onToggleTheme}
-          />
-          <CircleButton label="♢" color={palette.text} palette={palette} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={onOpenProfile}
-            style={({ pressed }) => ({
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: COLORS.purple,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>AT</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <FlashTicker palette={palette} />
-      <PulseBar freeActive={freeActive} questCount={questCount} palette={palette} />
-
-      <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderColor: palette.borderStrong }}>
-        <HomeTabButton
-          active={homeTab === "quests"}
-          label="🔥 Quests"
-          color={COLORS.orange}
-          palette={palette}
-          onPress={() => onSetHomeTab("quests")}
-        />
-        <HomeTabButton
-          active={homeTab === "community"}
-          label="🤝 Community"
-          color={COLORS.teal}
-          palette={palette}
-          onPress={() => onSetHomeTab("community")}
-        />
-      </View>
-
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator
-        indicatorStyle={theme === "dark" ? "white" : "black"}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ gap: 9, paddingHorizontal: 9, paddingTop: 8, paddingBottom: 88 }}
-      >
-        {quests.map((quest) => (
-          <HomeQuestCard
-            key={quest.id}
-            quest={quest}
-            selected={quest.id === selectedId}
-            joined={joined.has(quest.id)}
-            palette={palette}
-            onPress={() => onOpenDetail(quest.id)}
-            onJoin={() => onJoin(quest.id)}
-          />
-        ))}
-
-        <GhostQuestCard palette={palette} />
-      </ScrollView>
-    </>
-  );
-}
-
-function PulseBar({
-  freeActive,
-  questCount,
-  palette,
-}: {
-  freeActive: boolean;
-  questCount: number;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  return (
-    <View
-      style={{
-        minHeight: 38,
-        paddingHorizontal: 18,
-        borderBottomWidth: 1,
-        borderColor: palette.borderStrong,
-        backgroundColor: palette.surface,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-      }}
-    >
-      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.orange, opacity: 0.9 }} />
-      <Text style={{ color: COLORS.orange, fontSize: 15, fontWeight: "900" }}>
-        {freeActive ? 24 : 23} people
-      </Text>
-      <Text style={{ color: palette.muted, fontSize: 15, fontWeight: "800" }}>active</Text>
-      <Text style={{ color: palette.muted, fontSize: 18, fontWeight: "900" }}>·</Text>
-      <Text style={{ color: COLORS.teal, fontSize: 15, fontWeight: "900" }}>{questCount} quests</Text>
-      <Text style={{ marginLeft: "auto", color: palette.muted, fontSize: 15, fontWeight: "900" }}>⌖ Juja</Text>
-    </View>
-  );
-}
-
-function RadarScreen({
-  quests,
-  sortedQuests,
-  selected,
-  joined,
-  palette,
-  theme,
-  freeActive,
-  questCount,
-  radarPanelHeight,
-  radarSize,
-  spinStyle,
-  onToggleTheme,
-  onSelectQuest,
-  onOpenDetail,
-  onOpenProfile,
-  onJoin,
-}: {
-  quests: Quest[];
-  sortedQuests: Quest[];
-  selected: Quest;
-  joined: Set<string>;
-  palette: (typeof themeTokens)[ThemeName];
-  theme: ThemeName;
-  freeActive: boolean;
-  questCount: number;
-  radarPanelHeight: number;
-  radarSize: number;
-  spinStyle: object;
-  onToggleTheme: () => void;
-  onSelectQuest: (questId: string) => void;
-  onOpenDetail: (questId: string) => void;
-  onOpenProfile: () => void;
-  onJoin: (questId: string) => void;
-}) {
-  return (
-    <View style={{ flex: 1, paddingBottom: 74 }}>
-      <View
-        style={{
-          paddingHorizontal: 18,
-          paddingTop: 18,
-          paddingBottom: 12,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <View>
-          <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "900", letterSpacing: 1.5 }}>
-            JUJA LIVE
-          </Text>
-          <Text style={{ color: COLORS.orange, fontSize: 39, fontWeight: "900", letterSpacing: -2 }}>
-            SideQuest
-          </Text>
-        </View>
-
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <CircleButton
-            label={theme === "dark" ? "☀" : "☾"}
-            color={COLORS.gold}
-            palette={palette}
-            onPress={onToggleTheme}
-          />
-          <CircleButton label="♢" color={palette.text} palette={palette} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Open profile"
-            onPress={onOpenProfile}
-            style={({ pressed }) => ({
-              width: 50,
-              height: 50,
-              borderRadius: 25,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: COLORS.purple,
-              opacity: pressed ? 0.72 : 1,
-            })}
-          >
-            <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>AT</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <PulseBar freeActive={freeActive} questCount={questCount} palette={palette} />
-
-      <View
-        style={{
-          height: radarPanelHeight,
-          alignItems: "center",
-          justifyContent: "center",
-          paddingVertical: 8,
-        }}
-      >
-        <Radar
-          quests={quests}
-          selectedId={selected.id}
-          onSelect={onSelectQuest}
-          palette={palette}
-          size={radarSize}
-          spinStyle={spinStyle}
-        />
-      </View>
-
-      <SelectedQuest
-        quest={selected}
-        joined={joined.has(selected.id)}
-        palette={palette}
-        onJoin={() => onJoin(selected.id)}
-      />
-
-      <View style={{ flex: 1, minHeight: 96, paddingHorizontal: 14, paddingTop: 10 }}>
-      <ScrollView
-        style={{ flex: 1 }}
-        showsVerticalScrollIndicator
-        indicatorStyle={theme === "dark" ? "white" : "black"}
-        scrollEventThrottle={16}
-        contentContainerStyle={{ gap: 10, paddingBottom: 18 }}
-      >
-        {sortedQuests.map((quest) => (
-          <QuestRow
-            key={quest.id}
-            quest={quest}
-            selected={quest.id === selected.id}
-            joined={joined.has(quest.id)}
-            palette={palette}
-            onPress={() => {
-              onSelectQuest(quest.id);
-              onOpenDetail(quest.id);
-            }}
-            onJoin={() => onJoin(quest.id)}
-          />
-        ))}
-        <GhostQuestCard palette={palette} />
-      </ScrollView>
-      </View>
-    </View>
-  );
-}
-
-function RadarQuestRow({
-  quest,
-  selected,
-  joined,
-  palette,
-  onPress,
-  onJoin,
-}: {
-  quest: Quest;
-  selected: boolean;
-  joined: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  onPress: () => void;
-  onJoin: () => void;
-}) {
-  const headcount = getQuestHeadcount(quest, joined);
-  const full = headcount >= quest.max && !joined;
-  const tag = quest.tag === "FLASH" ? `FLASH ${quest.time}` : `${headcount}/${quest.max}`;
-
-  return (
-    <View
-      style={{
-        minHeight: 54,
-        borderRadius: 12,
-        paddingHorizontal: 10,
-        paddingVertical: 7,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 8,
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: selected ? `${quest.color}55` : `${quest.color}26`,
-      }}
-    >
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPress}
-        style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 8 }}
-      >
-        <Text style={{ fontSize: 19 }}>{quest.emoji}</Text>
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={1} style={{ color: palette.text, fontSize: 13, fontWeight: "900" }}>
-            {quest.title}
-          </Text>
-          <Text style={{ color: quest.color, fontSize: 10, fontWeight: "900" }}>{tag}</Text>
-        </View>
-      </Pressable>
-      <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "800", marginRight: 4 }}>
-        {quest.distance}m
-      </Text>
-      <Pressable
-        accessibilityRole="button"
-        disabled={full}
-        onPress={onJoin}
-        style={({ pressed }) => ({
-          minHeight: 30,
-          borderRadius: 8,
-          paddingHorizontal: 12,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: joined ? COLORS.teal : full ? palette.surface3 : quest.color,
-          opacity: pressed ? 0.75 : 1,
-        })}
-      >
-        <Text style={{ color: "white", fontSize: 11, fontWeight: "900" }}>
-          {joined ? "In" : full ? "Full" : "Join"}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function QuestDetailScreen({
-  quest,
-  joined,
-  palette,
-  onBack,
-  onJoin,
-}: {
-  quest: Quest;
-  joined: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  onBack: () => void;
-  onJoin: () => void;
-}) {
-  const headcount = getQuestHeadcount(quest, joined);
-  const full = headcount >= quest.max && !joined;
-  const passed = isQuestPassed(quest);
-  const chatOpen = headcount >= 3 || joined;
-  const neededForChat = Math.max(0, 3 - headcount);
-  const startsLabel = quest.time.replace("Starts ", "");
-
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.screen }}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: 96 }}
-    >
-      <View
-        style={{
-          position: "relative",
-          paddingHorizontal: 14,
-          paddingTop: 18,
-          paddingBottom: 16,
-          borderBottomWidth: 1,
-          borderColor: palette.borderStrong,
-        }}
-      >
-        <View
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 1,
-            backgroundColor: quest.color,
-            opacity: 0.72,
-          }}
-        />
-        <Pressable
-          accessibilityRole="button"
-          onPress={onBack}
-          style={({ pressed }) => ({
-            alignSelf: "flex-start",
-            minHeight: 32,
-            justifyContent: "center",
-            opacity: pressed ? 0.65 : 1,
-          })}
-        >
-          <Text style={{ color: palette.muted, fontSize: 13, fontWeight: "900" }}>← Back</Text>
-        </Pressable>
-
-        <Text style={{ fontSize: 44, marginTop: 6, marginBottom: 8 }}>{quest.emoji}</Text>
-        <Text style={{ color: palette.text, fontSize: 30, fontWeight: "900", letterSpacing: -1 }}>
-          {quest.title}
-        </Text>
-        <Text style={{ color: palette.muted, fontSize: 13, fontWeight: "800", marginTop: 4 }}>
-          📍 {quest.place} area
-        </Text>
-        <Text style={{ color: palette.muted2, fontSize: 11, fontStyle: "italic", fontWeight: "700", marginTop: 3 }}>
-          {joined ? "Exact location unlocked for joined members" : "Exact location unlocks when you join"}
-        </Text>
-      </View>
-
-      <View style={{ paddingHorizontal: 13, paddingTop: 12 }}>
-        <View style={{ flexDirection: "row", gap: 7, marginBottom: 10 }}>
-          <DetailStat label="Squad" value={`${headcount}/${quest.max}`} color={quest.color} palette={palette} />
-          <DetailStat label="Expires" value={passed ? "Past" : "18h"} color={passed ? palette.muted : palette.text} palette={palette} />
-          <DetailStat label="Starts" value={startsLabel} color={COLORS.teal} palette={palette} />
-        </View>
-
-        <View
-          style={{
-            borderRadius: 12,
-            paddingHorizontal: 12,
-            paddingVertical: 10,
-            backgroundColor: palette.surface,
-            borderWidth: 1,
-            borderColor: palette.border,
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ color: palette.muted, fontSize: 13, lineHeight: 21, fontWeight: "700" }}>
-            {getQuestDescription(quest)}
-          </Text>
-        </View>
-
-        <Text
-          style={{
-            color: palette.muted,
-            fontSize: 10,
-            textTransform: "uppercase",
-            letterSpacing: 1.2,
-            fontWeight: "900",
-            marginBottom: 6,
-          }}
-        >
-          Hype — last 2h
-        </Text>
-        <View style={{ flexDirection: "row", gap: 5, marginBottom: 10 }}>
-          <HypeTile emoji="🔥" current={Math.max(quest.energy, 1)} total={7} color={COLORS.orange} fill={80} palette={palette} />
-          <HypeTile emoji="👀" current={Math.min(quest.members + 2, 11)} total={11} color={COLORS.teal} fill={100} palette={palette} />
-          <HypeTile emoji="🙌" current={joined ? 2 : 1} total={5} color={COLORS.purple} fill={joined ? 45 : 30} palette={palette} />
-        </View>
-
-        <View style={{ marginBottom: 10 }}>
-          <Energy level={quest.energy} color={quest.color} palette={palette} />
-        </View>
-
-        <View
-          style={{
-            borderRadius: 13,
-            padding: 12,
-            alignItems: "center",
-            backgroundColor: palette.surface,
-            borderWidth: 1,
-            borderColor: palette.border,
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ fontSize: 22, marginBottom: 4 }}>{chatOpen ? "💬" : "🔒"}</Text>
-          <Text style={{ color: palette.text, fontSize: 14, fontWeight: "900", marginBottom: 5 }}>
-            {chatOpen ? "Chat preview unlocked" : "Chat unlocks at 3 members"}
-          </Text>
-          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, marginBottom: 4 }}>
-            {[0, 1, 2].map((index) => (
-              <View
-                key={index}
-                style={{
-                  width: 9,
-                  height: 9,
-                  borderRadius: 5,
-                  backgroundColor: index < Math.min(headcount, 3) ? quest.color : palette.surface3,
-                  borderWidth: 1.5,
-                  borderColor: index < Math.min(headcount, 3) ? quest.color : palette.border,
-                }}
+    <ScreenFrame>
+      <Header />
+      <LiveStrip />
+      <View style={{ height: 220, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 220, height: 220 }}>
+          <Svg width={220} height={220} viewBox="0 0 220 220">
+            {[35, 63, 90, 112].map((radius, index) => (
+              <Circle
+                key={radius}
+                cx="110"
+                cy="110"
+                r={radius}
+                fill="none"
+                stroke={index === 0 ? "#ff6b2b22" : "#ffffff08"}
+                strokeWidth={index === 0 ? 1.5 : 1}
+                strokeDasharray={index > 0 ? "4 5" : undefined}
               />
             ))}
-          </View>
-          <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "800" }}>
-            {chatOpen ? "Specifics will be discussed in the chatroom" : `${neededForChat} more needed`}
-          </Text>
-        </View>
+            {dots.map((dot, index) => {
+              const radians = (dot.angle * Math.PI) / 180;
+              const x = 110 + dot.radius * 0.9 * Math.sin(radians);
+              const y = 110 - dot.radius * 0.9 * Math.cos(radians);
 
-        <Pressable
-          accessibilityRole="button"
-          disabled={full || passed}
-          onPress={onJoin}
-          style={({ pressed }) => ({
-            minHeight: 54,
-            borderRadius: 14,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: joined ? COLORS.teal : full || passed ? palette.surface3 : COLORS.orange,
-            opacity: pressed ? 0.75 : 1,
+              return (
+                <React.Fragment key={`${dot.emoji}-${index}`}>
+                  <Circle cx={x} cy={y} r={11} fill={dot.color} fillOpacity={0.12} stroke={dot.color} strokeWidth={1.5} />
+                  <Circle cx={x} cy={y} r={14} fill="none" stroke={dot.color} strokeWidth={7} strokeOpacity={0.05} />
+                  <SvgText x={x} y={y + 4} textAnchor="middle" fontSize="9">
+                    {dot.emoji}
+                  </SvgText>
+                </React.Fragment>
+              );
+            })}
+            <Circle cx="110" cy="110" r={5} fill={OR} />
+            <Circle cx="110" cy="110" r={13} fill={OR} fillOpacity={0.12} />
+            {["100m", "500m", "1km"].map((label, index) => (
+              <SvgText
+                key={label}
+                x="112"
+                y={110 - [35, 63, 90][index] + 8}
+                fontSize="5.5"
+                fill="#30304a"
+                fontWeight="700"
+              >
+                {label}
+              </SvgText>
+            ))}
+          </Svg>
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              top: 0,
+              width: 220,
+              height: 220,
+              transform: [{ rotate }],
+            }}
+          >
+            <View
+              style={{
+                position: "absolute",
+                left: 109,
+                top: 16,
+                width: 1.5,
+                height: 94,
+                backgroundColor: "#ff6b2b38",
+              }}
+            />
+          </Animated.View>
+          {dots.map((dot, index) => {
+            const radians = (dot.angle * Math.PI) / 180;
+            const x = 110 + dot.radius * 0.9 * Math.sin(radians);
+            const y = 110 - dot.radius * 0.9 * Math.cos(radians);
+
+            return (
+              <Pressable
+                key={`${dot.emoji}-${index}-touch`}
+                onPress={() => nav("Detail")}
+                style={{
+                  position: "absolute",
+                  left: x - 22,
+                  top: y - 22,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                }}
+              />
+            );
           })}
+        </View>
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 9, paddingBottom: 8, gap: 4 }}
+        style={{ flex: 1 }}
+      >
+        {[
+          { emoji: "⚡", label: "Pizza Run", distance: "195m", color: RD, tag: "FLASH 18min" },
+          { emoji: "☕", label: "Coffee", distance: "210m", color: OR, tag: "2/6" },
+          { emoji: "⚽", label: "Football", distance: "490m", color: OR, tag: "4/10" },
+        ].map((quest) => (
+          <Pressable
+            key={quest.label}
+            onPress={() => nav("Detail")}
+            style={({ pressed }) => ({
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 7,
+              backgroundColor: S1,
+              borderWidth: 1,
+              borderColor: `${quest.color}24`,
+              borderRadius: 11,
+              paddingVertical: 6,
+              paddingHorizontal: 9,
+              opacity: pressed ? 0.78 : 1,
+            })}
+          >
+            <AppText style={{ fontSize: 16 }}>{quest.emoji}</AppText>
+            <View style={{ flex: 1 }}>
+              <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 10 }}>{quest.label}</AppText>
+              <AppText style={{ color: quest.color, fontFamily: bodyBold, fontSize: 7.5 }}>{quest.tag}</AppText>
+            </View>
+            <AppText style={{ color: MT, fontSize: 8.5, marginRight: 3 }}>{quest.distance}</AppText>
+            <View style={{ paddingVertical: 3, paddingHorizontal: 9, backgroundColor: quest.color, borderRadius: 7 }}>
+              <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8 }}>Join</AppText>
+            </View>
+          </Pressable>
+        ))}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 7,
+            backgroundColor: "#0b0b14",
+            borderWidth: 1,
+            borderColor: "#ffffff08",
+            borderRadius: 11,
+            paddingVertical: 6,
+            paddingHorizontal: 9,
+            opacity: 0.55,
+          }}
         >
-          <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>
-            {joined ? "Joined" : passed ? "Quest passed" : full ? "Quest full" : "⚡ Join Quest"}
-          </Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+          <AppText style={{ fontSize: 16, opacity: 0.4 }}>🚲</AppText>
+          <View style={{ flex: 1 }}>
+            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride · ended 22 min ago</AppText>
+            <AppText style={{ color: MT, fontSize: 8 }}>5 people · dissolved</AppText>
+          </View>
+          <View style={{ backgroundColor: S2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
+            <AppText style={{ color: MT, fontSize: 8 }}>ghost</AppText>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenFrame>
   );
 }
 
-function DetailStat({
-  label,
-  value,
-  color,
-  palette,
-}: {
-  label: string;
-  value: string;
-  color: string;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        borderRadius: 11,
-        paddingHorizontal: 8,
-        paddingVertical: 9,
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: palette.border,
-      }}
-    >
-      <Text style={{ color: palette.muted, fontSize: 9, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1 }}>
-        {label}
-      </Text>
-      <Text numberOfLines={1} style={{ color, fontSize: 16, fontWeight: "900", marginTop: 3 }}>
-        {value}
-      </Text>
-    </View>
-  );
-}
+function HomeScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const ticker = useRef(new Animated.Value(0)).current;
 
-function HypeTile({
-  emoji,
-  current,
-  total,
-  color,
-  fill,
-  palette,
-}: {
-  emoji: string;
-  current: number;
-  total: number;
-  color: string;
-  fill: number;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        minHeight: 70,
-        borderRadius: 10,
-        paddingVertical: 7,
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        backgroundColor: palette.surface2,
-        borderWidth: 1,
-        borderColor: `${color}33`,
-      }}
-    >
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          bottom: 0,
-          width: `${fill}%`,
-          height: 3,
-          backgroundColor: color,
-        }}
-      />
-      <Text style={{ fontSize: 18, marginBottom: 3 }}>{emoji}</Text>
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: 1 }}>
-        <Text style={{ color, fontSize: 14, fontWeight: "900" }}>{current}</Text>
-        <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "800" }}>/{total}</Text>
-      </View>
-    </View>
-  );
-}
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(ticker, {
+        toValue: 1,
+        duration: 18000,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [ticker]);
 
-function getQuestDescription(quest: Quest) {
-  const lowerTitle = quest.title.toLowerCase();
-
-  if (lowerTitle.includes("bike")) {
-    return "Casual evening ride through Juja Farm. Any bike works.";
-  }
-  if (quest.tag === "COMMUNITY") {
-    return "Community quest with open slots for anyone nearby. Join first, then coordinate specifics in chat.";
-  }
-  if (lowerTitle.includes("study") || quest.tag === "FOCUS") {
-    return "Short focused session with nearby people. Bring what you are working on and sync in the chatroom.";
-  }
-  if (lowerTitle.includes("food") || lowerTitle.includes("pizza") || lowerTitle.includes("taco")) {
-    return "Quick food run with people nearby. Exact meetup point unlocks after joining.";
-  }
-
-  return `${quest.title} around ${quest.place}. Join to unlock the exact location and chat with the squad.`;
-}
-
-function ChatScreen({
-  quest,
-  palette,
-}: {
-  quest: Quest;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  const messages = [
-    { user: "Alex M.", text: "Main stage at 5pm?" },
-    { user: "Joy K.", text: "Works. Which route?" },
-    { user: "Alex M.", text: "Farm loop then bypass 🚴" },
-    { user: "You", text: "On my way. 10 mins 🔥" },
+  const translateX = ticker.interpolate({ inputRange: [0, 1], outputRange: [0, -230] });
+  const quests = [
+    { emoji: "🚲", title: "Bike Ride", place: "Juja Farm Rd", members: 3, max: 6, energy: 4, start: "17:30", full: false },
+    { emoji: "🎲", title: "Board Games", place: "Kahawa Sukari", members: 4, max: 8, energy: 3, start: "19:00", full: false },
+    { emoji: "⚽", title: "Evening Football", place: "JKUAT Grounds", members: 10, max: 10, energy: 2, start: "18:00", full: true },
   ];
 
   return (
-    <View style={{ flex: 1, paddingBottom: 74, backgroundColor: palette.screen }}>
-      <View style={{ paddingHorizontal: 13, paddingTop: 18, paddingBottom: 10, borderBottomWidth: 1, borderColor: palette.borderStrong }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 9 }}>
-          <Text style={{ fontSize: 24 }}>{quest.emoji}</Text>
-          <View style={{ flex: 1 }}>
-            <Text numberOfLines={1} style={{ color: palette.text, fontSize: 15, fontWeight: "900" }}>{quest.title} · dissolves in 1h 44m</Text>
-            <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "800", marginTop: 2 }}>📍 {quest.place} · {quest.members}/{quest.max}</Text>
-          </View>
-          <Text style={{ color: COLORS.orange, fontSize: 10, fontWeight: "900", borderRadius: 8, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(255,107,43,0.1)" }}>Live</Text>
+    <ScreenFrame>
+      <Header />
+      <View
+        style={{
+          backgroundColor: "#ff3b3014",
+          borderBottomWidth: 1,
+          borderBottomColor: "#ff3b3025",
+          paddingVertical: 3,
+          flexDirection: "row",
+          alignItems: "center",
+          overflow: "hidden",
+        }}
+      >
+        <AppText style={{ color: RD, fontFamily: bodyBold, fontSize: 8.5, paddingHorizontal: 8 }}>⚡</AppText>
+        <View style={{ flex: 1, overflow: "hidden" }}>
+          <Animated.View style={{ flexDirection: "row", gap: 28, transform: [{ translateX }] }}>
+            {["Pizza Run · 300m · 14 min", "Taco Hunt · 600m · 22 min", "Pizza Run · 300m · 14 min", "Taco Hunt · 600m · 22 min"].map((item, index) => (
+              <AppText key={`${item}-${index}`} style={{ color: "#ff8080", fontFamily: bodyBold, fontSize: 8.5 }}>
+                {item}
+              </AppText>
+            ))}
+          </Animated.View>
         </View>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 5, paddingHorizontal: 9, paddingVertical: 7 }}>
+      <LiveStrip compact />
+      <View style={{ flexDirection: "row", paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: S3 }}>
+        <View style={{ paddingVertical: 5, paddingHorizontal: 9, borderBottomWidth: 2, borderBottomColor: OR }}>
+          <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 10 }}>Quests</AppText>
+        </View>
+        <View style={{ paddingVertical: 5, paddingHorizontal: 9 }}>
+          <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Community</AppText>
+        </View>
+      </View>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingVertical: 6, paddingHorizontal: 9, gap: 6, paddingBottom: 8 }}
+      >
+        {quests.map((quest) => (
+          <QuestCard key={quest.title} quest={quest} onPress={() => nav("Detail")} />
+        ))}
+        <View
+          style={{
+            backgroundColor: "#0b0b12",
+            borderWidth: 1,
+            borderColor: "#ffffff08",
+            borderRadius: 12,
+            paddingVertical: 8,
+            paddingHorizontal: 10,
+            opacity: 0.55,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <AppText style={{ fontSize: 16, opacity: 0.35 }}>🚲</AppText>
+            <View style={{ flex: 1 }}>
+              <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 10 }}>Bike Ride ended 25 min ago</AppText>
+              <AppText style={{ color: MT, fontSize: 8 }}>5 people · dissolved</AppText>
+            </View>
+            <View style={{ backgroundColor: S2, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
+              <AppText style={{ color: MT, fontSize: 8 }}>ghost</AppText>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </ScreenFrame>
+  );
+}
+
+function QuestCard({
+  quest,
+  onPress,
+}: {
+  quest: {
+    emoji: string;
+    title: string;
+    place: string;
+    members: number;
+    max: number;
+    energy: number;
+    start: string;
+    full: boolean;
+  };
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => ({
+        backgroundColor: quest.full ? "#0e0e18" : S1,
+        borderWidth: 1,
+        borderColor: quest.full ? "#ffffff12" : "#ffffff10",
+        borderRadius: 14,
+        padding: 10,
+        overflow: "hidden",
+        opacity: quest.full ? 0.8 : pressed ? 0.78 : 1,
+      })}
+    >
+      <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, backgroundColor: quest.full ? MT : OR }} />
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+        <AppText style={{ fontSize: 24, lineHeight: 27 }}>{quest.emoji}</AppText>
+        {quest.full ? (
+          <View style={{ backgroundColor: "#ffffff12", borderColor: "#ffffff20", borderWidth: 1, borderRadius: 7, paddingVertical: 2, paddingHorizontal: 7 }}>
+            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 8.5 }}>FULL</AppText>
+          </View>
+        ) : (
+          <View style={{ backgroundColor: `${TL}18`, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 5 }}>
+            <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 7.5 }}>▶ {quest.start}</AppText>
+          </View>
+        )}
+      </View>
+      <AppText display style={{ color: quest.full ? MT : TX, fontFamily: displayFontAlt, fontSize: 12, marginBottom: 1 }}>
+        {quest.title}
+      </AppText>
+      <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 6 }}>⌖ {quest.place}</AppText>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: quest.full ? 0 : 5 }}>
+        <View style={{ flexDirection: "row", gap: 3, alignItems: "center" }}>
+          {Array.from({ length: Math.min(quest.max, 5) }).map((_, index) => (
+            <View
+              key={index}
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: 3,
+                backgroundColor: index < quest.members ? OR : S3,
+                borderWidth: 1,
+                borderColor: index < quest.members ? OR : "#ffffff12",
+              }}
+            />
+          ))}
+          <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 7.5, marginLeft: 2 }}>
+            {quest.members}/{quest.max}
+          </AppText>
+        </View>
+        {quest.full ? (
+          <View style={{ backgroundColor: S2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 9 }}>
+            <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 8.5 }}>Create similar</AppText>
+          </View>
+        ) : (
+          <View style={{ backgroundColor: OR, borderRadius: 7, paddingVertical: 4, paddingHorizontal: 10 }}>
+            <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 8.5 }}>Join</AppText>
+          </View>
+        )}
+      </View>
+      {!quest.full && <EnergyBar level={quest.energy} />}
+    </Pressable>
+  );
+}
+
+function DetailScreen({ nav }: { nav: (screen: Screen) => void }) {
+  return (
+    <ScreenFrame scroll>
+      <View style={{ marginHorizontal: -12, marginTop: -26, paddingTop: 32, paddingHorizontal: 13, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: S3 }}>
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 1, backgroundColor: OR }} />
+        <Pressable onPress={() => nav("Home")}>
+          <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 9, marginBottom: 8 }}>← Back</AppText>
+        </Pressable>
+        <AppText style={{ fontSize: 38, lineHeight: 42, marginBottom: 6 }}>🚲</AppText>
+        <AppText display style={{ color: TX, fontSize: 20, marginBottom: 2 }}>Bike Ride</AppText>
+        <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 9.5 }}>⌖ Juja Farm Road area</AppText>
+        <AppText style={{ color: MT2, fontFamily: "Nunito_400Regular", fontSize: 8, marginTop: 1, fontStyle: "italic" }}>
+          Exact location unlocks when you join
+        </AppText>
+      </View>
+      <View style={{ paddingTop: 10 }}>
+        <View style={{ flexDirection: "row", gap: 5, marginBottom: 9 }}>
+          {[
+            { label: "Squad", value: "2/6", color: OR },
+            { label: "Expires", value: "18h", color: TX },
+            { label: "Starts", value: "17:30", color: TL },
+          ].map((item) => (
+            <View key={item.label} style={{ flex: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 10, paddingVertical: 7, paddingHorizontal: 6 }}>
+              <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 2 }}>{item.label}</AppText>
+              <AppText display style={{ color: item.color, fontFamily: displayFontAlt, fontSize: 14 }}>{item.value}</AppText>
+            </View>
+          ))}
+        </View>
+        <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 8 }}>
+          <AppText style={{ color: "#9090b0", fontSize: 9, lineHeight: 15 }}>Casual evening ride through Juja Farm. Any bike works.</AppText>
+        </View>
+        <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>Hype — last 2h</AppText>
+        <View style={{ flexDirection: "row", gap: 4, marginBottom: 8 }}>
+          {[
+            { emoji: "🔥", recent: 3, total: 7, color: OR, pct: "80%" },
+            { emoji: "👀", recent: 6, total: 11, color: TL, pct: "100%" },
+            { emoji: "🚀", recent: 1, total: 5, color: PU, pct: "30%" },
+          ].map((hype) => (
+            <View key={hype.emoji} style={{ flex: 1, backgroundColor: S2, borderWidth: 1, borderColor: `${hype.color}30`, borderRadius: 9, paddingVertical: 5, alignItems: "center", overflow: "hidden" }}>
+              <View style={{ position: "absolute", bottom: 0, left: 0, width: hype.pct as "80%" | "100%" | "30%", height: 2, backgroundColor: hype.color }} />
+              <AppText style={{ fontSize: 14, marginBottom: 1 }}>{hype.emoji}</AppText>
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: 1 }}>
+                <AppText style={{ color: hype.color, fontFamily: bodyBold, fontSize: 11 }}>{hype.recent}</AppText>
+                <AppText style={{ color: MT, fontSize: 7.5 }}>/{hype.total}</AppText>
+              </View>
+            </View>
+          ))}
+        </View>
+        <View style={{ marginBottom: 8 }}>
+          <EnergyBar level={3} />
+        </View>
+        <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 11, padding: 9, alignItems: "center", marginBottom: 8 }}>
+          <AppText style={{ fontSize: 18, marginBottom: 2 }}>💬</AppText>
+          <AppText display style={{ color: TX, fontSize: 10, marginBottom: 3 }}>Chat unlocks at 3 members</AppText>
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5, marginBottom: 2 }}>
+            {[0, 1, 2].map((index) => (
+              <View key={index} style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: index < 2 ? OR : S3, borderWidth: 1.5, borderColor: index < 2 ? OR : "#ffffff16" }} />
+            ))}
+          </View>
+          <AppText style={{ color: MT, fontSize: 7.5 }}>1 more needed</AppText>
+        </View>
+        <Pressable onPress={() => nav("Chat")} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 12, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
+          <AppText display style={{ color: "white", fontSize: 13 }}>⚡ Join Quest</AppText>
+        </Pressable>
+      </View>
+    </ScreenFrame>
+  );
+}
+
+function ChatScreen({ nav }: { nav: (screen: Screen) => void }) {
+  const messages = [
+    { user: "Alex M.", text: "Main stage at 5pm?" },
+    { user: "Joy K.", text: "Works! Which route?" },
+    { user: "Alex M.", text: "Farm loop → bypass" },
+    { user: "You", text: "On my way! 10 mins" },
+  ];
+
+  return (
+    <ScreenFrame>
+      <View style={{ paddingHorizontal: 13, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: S3 }}>
+        <Pressable onPress={() => nav("Detail")}>
+          <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 9, marginBottom: 6 }}>← Back</AppText>
+        </Pressable>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 7 }}>
+          <AppText style={{ fontSize: 20 }}>🚲</AppText>
+          <View style={{ flex: 1 }}>
+            <AppText display style={{ color: TX, fontSize: 12 }}>Bike Ride · dissolves in 1h 44m</AppText>
+            <AppText style={{ color: MT, fontSize: 8.5 }}>⌖ Main Stage · 3/6</AppText>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#ff6b2b14", borderWidth: 1, borderColor: "#ff6b2b25", borderRadius: 7, paddingVertical: 2, paddingHorizontal: 6 }}>
+            <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: OR }} />
+            <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 8.5 }}>Live</AppText>
+          </View>
+        </View>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, backgroundColor: S1, borderBottomWidth: 1, borderBottomColor: S3 }} contentContainerStyle={{ paddingVertical: 4, paddingHorizontal: 8, gap: 3 }}>
         {[
-          { name: "Alex M.", status: "Already there 📍", color: COLORS.orange },
-          { name: "Joy K.", status: "On my way 🚀", color: COLORS.teal },
-          { name: "You", status: "On my way 🚀", color: COLORS.purple },
+          { name: "Alex M.", status: "Already there", color: OR },
+          { name: "Joy K.", status: "On my way", color: TL },
+          { name: "You", status: "On my way", color: PU },
         ].map((member) => (
-          <View key={member.name} style={{ flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 9, paddingHorizontal: 8, paddingVertical: 5, backgroundColor: palette.surface2 }}>
-            <Avatar label={member.name} size={22} color={member.color} />
+          <View key={member.name} style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: S2, borderRadius: 7, paddingVertical: 3, paddingHorizontal: 6 }}>
+            <Avatar name={member.name} size={13} />
             <View>
-              <Text style={{ color: palette.textSoft, fontSize: 9, fontWeight: "900" }}>{member.name === "You" ? "You" : member.name.split(" ")[0]}</Text>
-              <Text style={{ color: member.color, fontSize: 8, fontWeight: "800" }}>{member.status}</Text>
+              <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 7 }}>{member.name === "You" ? "You" : member.name.split(" ")[0]}</AppText>
+              <AppText style={{ color: member.color, fontFamily: bodyBold, fontSize: 6.5 }}>{member.status}</AppText>
             </View>
           </View>
         ))}
       </ScrollView>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: 8, padding: 10 }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingVertical: 7, paddingHorizontal: 9, gap: 6 }} showsVerticalScrollIndicator={false}>
         {messages.map((message, index) => {
           const mine = message.user === "You";
+
           return (
-            <View key={`${message.user}-${index}`} style={{ flexDirection: mine ? "row-reverse" : "row", alignItems: "flex-end", gap: 6 }}>
-              {!mine && <Avatar label={message.user} size={24} color={COLORS.teal} />}
-              <View style={{ maxWidth: "76%" }}>
-                {!mine && <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "800", marginBottom: 2 }}>{message.user}</Text>}
-                <View style={{ borderRadius: 13, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: mine ? COLORS.orange : palette.surface2 }}>
-                  <Text style={{ color: mine ? "white" : palette.text, fontSize: 13, lineHeight: 19, fontWeight: "700" }}>{message.text}</Text>
+            <View key={`${message.user}-${index}`} style={{ flexDirection: mine ? "row-reverse" : "row", gap: 4, alignItems: "flex-end" }}>
+              {!mine && <Avatar name={message.user} size={18} />}
+              <View style={{ maxWidth: "78%" }}>
+                {!mine && <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, marginBottom: 2 }}>{message.user}</AppText>}
+                <View style={{ backgroundColor: mine ? OR : S2, borderRadius: 10, borderBottomRightRadius: mine ? 3 : 10, borderBottomLeftRadius: mine ? 10 : 3, paddingVertical: 5, paddingHorizontal: 8 }}>
+                  <AppText style={{ color: "white", fontSize: 10, lineHeight: 15 }}>{message.text}</AppText>
                 </View>
               </View>
             </View>
           );
         })}
       </ScrollView>
-      <View style={{ marginHorizontal: 9, marginBottom: 6, borderRadius: 11, paddingHorizontal: 10, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 7, backgroundColor: "rgba(167,139,250,0.1)", borderWidth: 1, borderColor: "rgba(167,139,250,0.26)" }}>
-        <Text style={{ fontSize: 16 }}>🤝</Text>
+      <View style={{ marginHorizontal: 8, marginVertical: 3, backgroundColor: "#a78bfa12", borderWidth: 1, borderColor: "#a78bfa30", borderRadius: 9, paddingVertical: 6, paddingHorizontal: 9, flexDirection: "row", alignItems: "center", gap: 5 }}>
+        <AppText style={{ fontSize: 13 }}>☎</AppText>
         <View style={{ flex: 1 }}>
-          <Text style={{ color: COLORS.purple, fontSize: 11, fontWeight: "900" }}>Share contact before chat closes</Text>
-          <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "800" }}>28 min · Chat dissolves when squad disbands</Text>
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>Share contact before chat closes</AppText>
+          <AppText style={{ color: MT, fontSize: 7.5 }}>28 min · Chat dissolves when squad disbands</AppText>
         </View>
-        <Text style={{ color: COLORS.purple, fontSize: 11, fontWeight: "900" }}>Share</Text>
+        <View style={{ backgroundColor: "#a78bfa18", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
+          <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8 }}>Share</AppText>
+        </View>
       </View>
-    </View>
+      <View style={{ paddingVertical: 5, paddingHorizontal: 8, borderTopWidth: 1, borderTopColor: S3, flexDirection: "row", gap: 4 }}>
+        <View style={{ flex: 1, backgroundColor: S2, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 10 }}>
+          <AppText style={{ color: MT, fontSize: 9.5 }}>Coordinate — where are you meeting?</AppText>
+        </View>
+        <View style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: OR, alignItems: "center", justifyContent: "center" }}>
+          <AppText style={{ color: "white", fontFamily: bodyBold, fontSize: 11 }}>➤</AppText>
+        </View>
+      </View>
+    </ScreenFrame>
   );
 }
 
-function PostScreen({
-  palette,
-  cooldownLabel,
-  onCooldown,
-  onOpenComposer,
-}: {
-  palette: (typeof themeTokens)[ThemeName];
-  cooldownLabel: string;
-  onCooldown: boolean;
-  onOpenComposer: () => void;
-}) {
-  const starters = ["☕ Coffee", "⚽ Football", "🎲 Games", "🚶 Walk", "🏃 Run", "🍕 Food", "🎮 Gaming", "🏊 Swim"];
-
+function PostScreen({ nav }: { nav: (screen: Screen) => void }) {
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 18, paddingBottom: 92 }}>
-      <Text style={{ color: palette.text, fontSize: 25, fontWeight: "900" }}>Post a <Text style={{ color: COLORS.orange }}>Quest</Text></Text>
-      <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", marginTop: 3, marginBottom: 14 }}>Visible to people near you in 30 seconds.</Text>
-      <SectionLabel label="Quick start" palette={palette} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
-        {starters.map((item, index) => {
-          const [emoji, ...labelParts] = item.split(" ");
-          const active = index === 1;
-          return (
-            <View key={item} style={{ width: "23.5%", minHeight: 62, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: active ? "rgba(255,107,43,0.14)" : palette.surface, borderWidth: 1.5, borderColor: active ? COLORS.orange : palette.border }}>
-              <Text style={{ fontSize: 19 }}>{emoji}</Text>
-              <Text style={{ color: active ? COLORS.orange : palette.muted, fontSize: 9, fontWeight: "900", marginTop: 2 }}>{labelParts.join(" ")}</Text>
-            </View>
-          );
-        })}
+    <ScreenFrame scroll>
+      <AppText display style={{ color: TX, fontSize: 19, marginBottom: 2 }}>
+        Post a <AppText display style={{ color: OR, fontSize: 19 }}>Quest</AppText>
+      </AppText>
+      <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 10 }}>Visible to people near you in 30 seconds.</AppText>
+      <SectionLabel>Quick start</SectionLabel>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 10 }}>
+        {[
+          ["☕", "Coffee"],
+          ["⚽", "Football"],
+          ["🎲", "Games"],
+          ["🚶", "Walk"],
+          ["🏃", "Run"],
+          ["🍕", "Food"],
+          ["🎮", "Gaming"],
+          ["🏊", "Swim"],
+        ].map(([emoji, label], index) => (
+          <View key={label} style={{ width: "24%", backgroundColor: index === 1 ? "#ff6b2b20" : S1, borderWidth: 1.5, borderColor: index === 1 ? OR : "#ffffff12", borderRadius: 9, paddingVertical: 5, alignItems: "center" }}>
+            <AppText style={{ fontSize: 15, marginBottom: 1 }}>{emoji}</AppText>
+            <AppText style={{ color: index === 1 ? OR : MT2, fontFamily: bodyBold, fontSize: 7 }}>{label}</AppText>
+          </View>
+        ))}
       </View>
-      <PreviewField label="Activity" value="Football" color={palette.text} palette={palette} active />
-      <PreviewField label="Location" value="JKUAT Main Gate…" color={palette.muted} palette={palette} />
-      <PreviewField label="Start time" value="▶ 18:00" color={COLORS.teal} palette={palette} />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <StepperButton label="−" palette={palette} />
+      <Field label="Activity" value="Football" color={OR} />
+      <Field label="Location" value="JKUAT Main Gate…" />
+      <SectionLabel>Start time</SectionLabel>
+      <View style={{ backgroundColor: `${TL}10`, borderWidth: 1.5, borderColor: `${TL}40`, borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9, flexDirection: "row", alignItems: "center", gap: 4 }}>
+        <AppText style={{ color: TL, fontFamily: bodyBold, fontSize: 10.5 }}>▶ 18:00</AppText>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 9, marginBottom: 10 }}>
+        <StepperButton label="−" />
         <View style={{ flex: 1, alignItems: "center" }}>
-          <Text style={{ color: COLORS.orange, fontSize: 31, fontWeight: "900" }}>10</Text>
-          <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "800" }}>people max</Text>
+          <AppText display style={{ color: OR, fontSize: 24 }}>10</AppText>
+          <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5 }}>max</AppText>
         </View>
-        <StepperButton label="+" palette={palette} />
+        <StepperButton label="+" />
       </View>
-      <Pressable accessibilityRole="button" disabled={onCooldown} onPress={onOpenComposer} style={({ pressed }) => ({ minHeight: 54, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: onCooldown ? palette.surface3 : COLORS.orange, opacity: onCooldown ? 0.68 : pressed ? 0.76 : 1 })}>
-        <Text style={{ color: "white", fontSize: 16, fontWeight: "900" }}>{onCooldown ? `Available in ${cooldownLabel}` : "🚀 Post Quest"}</Text>
+      <Pressable onPress={() => nav("Home")} style={({ pressed }) => ({ backgroundColor: OR, borderRadius: 11, padding: 11, alignItems: "center", opacity: pressed ? 0.8 : 1 })}>
+        <AppText display style={{ color: "white", fontSize: 13 }}>Post Quest</AppText>
       </Pressable>
-    </ScrollView>
+    </ScreenFrame>
   );
 }
 
-function FreeScreen({ palette, active, onToggle }: { palette: (typeof themeTokens)[ThemeName]; active: boolean; onToggle: () => void }) {
+function FreeScreen({ nav }: { nav: (screen: Screen) => void }) {
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 13, paddingTop: 18, paddingBottom: 92 }}>
-      <View style={{ alignItems: "center", paddingHorizontal: 10, paddingVertical: 18, borderRadius: 16, backgroundColor: "rgba(167,139,250,0.09)", borderWidth: 1, borderColor: "rgba(167,139,250,0.22)", marginBottom: 11 }}>
-        <Text style={{ fontSize: 40, marginBottom: 8 }}>⚡</Text>
-        <Text style={{ color: palette.text, fontSize: 23, fontWeight: "900" }}>I'm Free Mode</Text>
-        <Text style={{ color: palette.muted, textAlign: "center", fontSize: 12, lineHeight: 19, fontWeight: "800", marginTop: 5 }}>No plan. No activity. People within 1km see you're free.</Text>
+    <ScreenFrame scroll>
+      <View style={{ alignItems: "center", paddingVertical: 14, paddingHorizontal: 8, backgroundColor: "#a78bfa0e", borderRadius: 14, borderWidth: 1, borderColor: `${PU}35`, marginBottom: 10 }}>
+        <AppText style={{ fontSize: 34, marginBottom: 5 }}>⚡</AppText>
+        <AppText display style={{ color: TX, fontSize: 17, marginBottom: 2 }}>I'm Free Mode</AppText>
+        <AppText style={{ color: MT2, fontSize: 9, lineHeight: 14, textAlign: "center" }}>No plan. No activity.{"\n"}People within 1km see you're free.</AppText>
       </View>
-      <View style={{ borderRadius: 12, padding: 11, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border, marginBottom: 10 }}>
-        <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", marginBottom: 6 }}>Next broadcast in <Text style={{ color: COLORS.purple }}>4h 22m</Text></Text>
-        <View style={{ height: 5, borderRadius: 3, backgroundColor: palette.surface3, overflow: "hidden" }}><View style={{ width: "27%", height: "100%", backgroundColor: COLORS.purple }} /></View>
-      </View>
-      <View style={{ borderRadius: 14, padding: 12, backgroundColor: "rgba(167,139,250,0.1)", borderWidth: 1.5, borderColor: "rgba(167,139,250,0.28)", marginBottom: 12 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <Text style={{ color: palette.text, fontSize: 15, fontWeight: "900" }}>{active ? "Broadcasting ⚡" : "Ready to broadcast"}</Text>
-          <Text style={{ color: COLORS.purple, fontSize: 10, fontWeight: "900" }}>{active ? "LIVE" : "IDLE"}</Text>
+      <View style={{ backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff12", borderRadius: 10, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 8 }}>
+        <AppText style={{ color: MT, fontSize: 8.5, marginBottom: 4 }}>
+          Next broadcast in <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8.5 }}>4h 22m</AppText>
+        </AppText>
+        <View style={{ height: 4, backgroundColor: S3, borderRadius: 2, overflow: "hidden" }}>
+          <View style={{ width: "27%", height: "100%", backgroundColor: PU, borderRadius: 2 }} />
         </View>
-        <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "800", marginBottom: 8 }}>📍 1km · Expires 1h 54m · 2 replies</Text>
+      </View>
+      <View style={{ backgroundColor: "#a78bfa10", borderWidth: 1.5, borderColor: `${PU}45`, borderRadius: 12, padding: 10, marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <AppText display style={{ color: TX, fontSize: 11 }}>Broadcasting ⚡</AppText>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: PU }} />
+            <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 7.5 }}>LIVE</AppText>
+          </View>
+        </View>
+        <AppText style={{ color: MT2, fontSize: 8, marginBottom: 6 }}>⌖ 1km · Expires 1h 54m · 2 replies</AppText>
         {[
           { name: "Ciku N.", text: "☕ Coffee sounds good?" },
           { name: "Brian T.", text: "Football? Also free!" },
         ].map((reply) => (
-          <View key={reply.name} style={{ flexDirection: "row", alignItems: "center", gap: 7, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 7, backgroundColor: palette.surface2, marginBottom: 5 }}>
-            <Avatar label={reply.name} size={24} color={COLORS.purple} />
+          <View key={reply.name} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: S2, borderRadius: 8, paddingVertical: 5, paddingHorizontal: 7, marginBottom: 4 }}>
+            <Avatar name={reply.name} size={20} />
             <View style={{ flex: 1 }}>
-              <Text style={{ color: palette.text, fontSize: 12, fontWeight: "900" }}>{reply.name}</Text>
-              <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800" }}>{reply.text}</Text>
+              <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 9 }}>{reply.name}</AppText>
+              <AppText style={{ color: MT2, fontSize: 9 }}>{reply.text}</AppText>
             </View>
-            <Text style={{ color: COLORS.purple, fontSize: 10, fontWeight: "900" }}>Reply</Text>
+            <Pressable onPress={() => nav("Post")} style={{ backgroundColor: "#a78bfa12", borderWidth: 1, borderColor: `${PU}40`, borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
+              <AppText style={{ color: PU, fontFamily: bodyBold, fontSize: 8 }}>Reply</AppText>
+            </Pressable>
           </View>
         ))}
       </View>
-      <Pressable accessibilityRole="button" onPress={onToggle} style={({ pressed }) => ({ minHeight: 52, borderRadius: 13, alignItems: "center", justifyContent: "center", backgroundColor: active ? palette.surface3 : COLORS.purple, opacity: pressed ? 0.76 : 1 })}>
-        <Text style={{ color: "white", fontSize: 15, fontWeight: "900" }}>{active ? "⏱ Available in 4h 22m" : "⚡ Broadcast I'm Free"}</Text>
-      </Pressable>
-    </ScrollView>
+      <View style={{ backgroundColor: S2, borderRadius: 11, padding: 11, alignItems: "center", opacity: 0.6 }}>
+        <AppText display style={{ color: MT, fontSize: 11 }}>⏱ Available in 4h 22m</AppText>
+      </View>
+    </ScreenFrame>
   );
 }
 
-function ProfileScreen({ palette }: { palette: (typeof themeTokens)[ThemeName] }) {
+function ProfileScreen() {
   const cards = [
-    { emoji: "🚴", title: "Bike Ride", vibe: "🔥", gold: true, shared: true },
-    { emoji: "🎲", title: "Games", vibe: "🔥", gold: false, shared: true },
-    { emoji: "⚽", title: "Football", vibe: "😐", gold: false, shared: false },
-    { emoji: "🩸", title: "Blood Drive", vibe: "🙌", gold: false, shared: false },
+    { emoji: "🚲", title: "Bike Ride", vibe: "🔥", gold: true, shared: true },
+    { emoji: "🎲", title: "Games", vibe: "✨", gold: false, shared: true },
+    { emoji: "⚽", title: "Football", vibe: "⚡", gold: false, shared: false },
+    { emoji: "🩸", title: "Blood Drive", vibe: "💛", gold: false, shared: false },
   ];
 
   return (
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 92 }}>
-      <View style={{ alignItems: "center", paddingHorizontal: 13, paddingTop: 20, paddingBottom: 15, borderBottomWidth: 1, borderColor: palette.borderStrong }}>
-        <View style={{ position: "relative", marginBottom: 8 }}>
-          <Avatar label="AT" size={54} color={COLORS.purple} />
-          <View style={{ position: "absolute", right: -2, bottom: -2, width: 19, height: 19, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.gold, borderWidth: 2, borderColor: palette.screen }}><Text style={{ color: "#08080f", fontSize: 9, fontWeight: "900" }}>7</Text></View>
+    <ScreenFrame>
+      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 10 }}>
+        <View style={{ paddingTop: 28, paddingHorizontal: 12, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: S3, alignItems: "center", backgroundColor: "#0b0911" }}>
+          <View style={{ position: "relative", marginBottom: 6 }}>
+            <Avatar name="AT" size={46} />
+            <View style={{ position: "absolute", bottom: -2, right: -2, backgroundColor: YL, borderRadius: 8, width: 16, height: 16, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: BG }}>
+              <AppText style={{ color: "#08080f", fontFamily: bodyBold, fontSize: 8 }}>7</AppText>
+            </View>
+          </View>
+          <AppText display style={{ color: TX, fontSize: 14 }}>Atacama</AppText>
+          <AppText style={{ color: MT, fontSize: 8, marginBottom: 6 }}>Juja · Urban Explorer</AppText>
+          <View style={{ flexDirection: "row", justifyContent: "center", gap: 5 }}>
+            <Badge text="7-day streak" color={YL} emoji="🔥" />
+            <Badge text="Fast Joiner" color={PU} emoji="⚡" />
+          </View>
         </View>
-        <Text style={{ color: palette.text, fontSize: 18, fontWeight: "900" }}>Atacama</Text>
-        <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "800", marginTop: 2, marginBottom: 8 }}>Juja · Urban Explorer</Text>
-        <View style={{ flexDirection: "row", gap: 6 }}><Badge label="🔥 7-day streak" color={COLORS.gold} palette={palette} /><Badge label="⚡ Fast Joiner" color={COLORS.purple} palette={palette} /></View>
-      </View>
-      <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
-        <View style={{ flexDirection: "row", gap: 6, marginBottom: 10 }}>
-          <ProfileStat value="14" label="Quests" color={COLORS.orange} palette={palette} />
-          <ProfileStat value="🔥 4" label="Vibe" color={COLORS.gold} palette={palette} />
-          <ProfileStat value="88" label="Energy" color={COLORS.teal} palette={palette} />
-        </View>
-        <SectionLabel label="Badges" palette={palette} />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5, marginBottom: 10 }}>
-          {["🚀 First", "🔥 7-Day", "🃏 Wild", "⚡ Fast", "💥 Starter", "🤝 Civic", "🌟 Vibe", "🔮 ?"].map((badge, index) => (
-            <View key={badge} style={{ width: 50, minHeight: 48, borderRadius: 9, alignItems: "center", justifyContent: "center", backgroundColor: palette.surface, borderWidth: 1, borderColor: "rgba(251,191,36,0.16)", opacity: index >= 6 ? 0.35 : 1 }}>
-              <Text style={{ fontSize: 16 }}>{badge.split(" ")[0]}</Text>
-              <Text style={{ color: palette.muted, fontSize: 8, fontWeight: "800" }}>{badge.split(" ").slice(1).join(" ")}</Text>
+        <View style={{ paddingVertical: 8, paddingHorizontal: 11 }}>
+          <View style={{ flexDirection: "row", gap: 4, marginBottom: 8 }}>
+            {[
+              { value: "14", label: "Quests", color: OR },
+              { value: "4", label: "Vibe", color: YL },
+              { value: "88", label: "Energy", color: TL },
+            ].map((stat) => (
+              <View key={stat.label} style={{ flex: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#ffffff10", borderRadius: 8, paddingVertical: 6, alignItems: "center" }}>
+                <AppText display style={{ color: stat.color, fontSize: 12 }}>{stat.value}</AppText>
+                <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 6.5, marginTop: 1 }}>{stat.label}</AppText>
+              </View>
+            ))}
+          </View>
+          <SectionLabel>Badges</SectionLabel>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3, marginBottom: 8 }}>
+            {[
+              ["🚀", "First"],
+              ["🔥", "7-Day"],
+              ["🎲", "Wild"],
+              ["⚡", "Fast"],
+              ["☕", "Starter"],
+              ["🩸", "Civic"],
+              ["✨", "Vibe"],
+              ["?", "?"],
+            ].map(([emoji, label], index) => (
+              <View key={label} style={{ width: 36, alignItems: "center", gap: 1, backgroundColor: S1, borderWidth: 1, borderColor: "#fbbf2430", borderRadius: 8, paddingVertical: 4, opacity: index >= 6 ? 0.3 : 1 }}>
+                <AppText style={{ fontSize: 13 }}>{emoji}</AppText>
+                <AppText style={{ color: MT2, fontFamily: bodyBold, fontSize: 5.5, textAlign: "center" }}>{label}</AppText>
+              </View>
+            ))}
+          </View>
+          <SectionLabel>Story Cards</SectionLabel>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4, marginBottom: 8 }}>
+            {cards.map((card) => (
+              <View key={card.title} style={{ width: "49%", backgroundColor: card.gold ? `${YL}12` : card.shared ? S1 : "#0a0a12", borderWidth: 1, borderColor: card.gold ? `${YL}40` : card.shared ? S3 : "#ffffff08", borderRadius: 10, padding: 7, alignItems: "center", overflow: "hidden" }}>
+                {!card.shared && (
+                  <View style={{ position: "absolute", inset: 0, backgroundColor: "#07070fee", zIndex: 2, alignItems: "center", justifyContent: "center", gap: 1 }}>
+                    <AppText style={{ fontSize: 10 }}>🔒</AppText>
+                    <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 6.5, textAlign: "center", paddingHorizontal: 3 }}>Quest together first</AppText>
+                  </View>
+                )}
+                <AppText style={{ fontSize: 18, marginBottom: 2 }}>{card.emoji}</AppText>
+                <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 8.5, marginBottom: 1 }}>{card.title}</AppText>
+                <AppText style={{ fontSize: 11 }}>{card.vibe}</AppText>
+              </View>
+            ))}
+          </View>
+          <SectionLabel>Squad Memory</SectionLabel>
+          {[
+            ["Alex M.", "4"],
+            ["Joy K.", "3"],
+          ].map(([name, count]) => (
+            <View key={name} style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: S3 }}>
+              <Avatar name={name} size={22} />
+              <View style={{ flex: 1 }}>
+                <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 9.5 }}>{name}</AppText>
+                <AppText style={{ color: MT, fontSize: 7.5 }}>Quested {count}x</AppText>
+              </View>
+              <View style={{ backgroundColor: "#ff6b2b14", borderWidth: 1, borderColor: "#ff6b2b28", borderRadius: 6, paddingVertical: 2, paddingHorizontal: 6 }}>
+                <AppText style={{ color: OR, fontFamily: bodyBold, fontSize: 7.5 }}>Quest again</AppText>
+              </View>
             </View>
           ))}
         </View>
-        <SectionLabel label="Story Cards" palette={palette} />
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-          {cards.map((card) => (
-            <View key={card.title} style={{ width: "48.8%", minHeight: 90, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: card.gold ? "rgba(251,191,36,0.08)" : palette.surface, borderWidth: 1, borderColor: card.gold ? "rgba(251,191,36,0.24)" : palette.border, overflow: "hidden" }}>
-              {!card.shared && <View style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, zIndex: 2, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(7,7,15,0.86)", paddingHorizontal: 10 }}><Text style={{ fontSize: 13 }}>🔒</Text><Text style={{ color: "#aaaac4", fontSize: 9, textAlign: "center", fontWeight: "800" }}>Join a quest together first</Text></View>}
-              <Text style={{ fontSize: 23 }}>{card.emoji}</Text>
-              <Text style={{ color: palette.text, fontSize: 12, fontWeight: "900", marginTop: 3 }}>{card.title}</Text>
-              <Text style={{ fontSize: 14, marginTop: 2 }}>{card.vibe}</Text>
-              {card.gold && <Text style={{ color: COLORS.gold, fontSize: 9, fontWeight: "800" }}>Share 📸</Text>}
-            </View>
-          ))}
-        </View>
-      </View>
-    </ScrollView>
-  );
-}
-
-function PreviewField({ label, value, color, palette, active }: { label: string; value: string; color: string; palette: (typeof themeTokens)[ThemeName]; active?: boolean }) {
-  return (
-    <View style={{ marginBottom: 10 }}>
-      <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "900", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 5 }}>{label}</Text>
-      <View style={{ borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: active ? "rgba(255,107,43,0.1)" : palette.surface, borderWidth: 1.5, borderColor: active ? COLORS.orange : palette.border }}><Text style={{ color, fontSize: 13, fontWeight: "900" }}>{value}</Text></View>
-    </View>
-  );
-}
-
-function StepperButton({ label, palette }: { label: string; palette: (typeof themeTokens)[ThemeName] }) {
-  return <View style={{ width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: palette.surface, borderWidth: 1.5, borderColor: palette.border }}><Text style={{ color: palette.text, fontSize: 20, fontWeight: "900" }}>{label}</Text></View>;
-}
-
-function Avatar({ label, size, color }: { label: string; size: number; color: string }) {
-  const initials = label.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-  return <View style={{ width: size, height: size, borderRadius: size / 2, alignItems: "center", justifyContent: "center", backgroundColor: color }}><Text style={{ color: "white", fontSize: Math.max(8, size * 0.34), fontWeight: "900" }}>{initials}</Text></View>;
-}
-
-function Badge({ label, color }: { label: string; color: string; palette: (typeof themeTokens)[ThemeName] }) {
-  return <View style={{ borderRadius: 20, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: `${color}18`, borderWidth: 1, borderColor: `${color}44` }}><Text style={{ color, fontSize: 10, fontWeight: "900" }}>{label}</Text></View>;
-}
-
-function ProfileStat({ value, label, color, palette }: { value: string; label: string; color: string; palette: (typeof themeTokens)[ThemeName] }) {
-  return <View style={{ flex: 1, borderRadius: 10, paddingVertical: 8, alignItems: "center", backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.border }}><Text style={{ color, fontSize: 15, fontWeight: "900" }}>{value}</Text><Text style={{ color: palette.muted, fontSize: 9, fontWeight: "800", marginTop: 2 }}>{label}</Text></View>;
-}
-
-function SectionLabel({ label, palette }: { label: string; palette: (typeof themeTokens)[ThemeName] }) {
-  return <Text style={{ color: palette.muted, fontSize: 10, textTransform: "uppercase", letterSpacing: 1.2, fontWeight: "900", marginBottom: 6 }}>{label}</Text>;
-}
-
-function FlashTicker({ palette }: { palette: (typeof themeTokens)[ThemeName] }) {
-  return (
-    <View
-      style={{
-        minHeight: 30,
-        overflow: "hidden",
-        borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: "rgba(255,59,48,0.18)",
-        backgroundColor: "rgba(255,59,48,0.08)",
-        flexDirection: "row",
-        alignItems: "center",
-      }}
-    >
-      <Text style={{ width: 34, textAlign: "center", color: COLORS.red, fontSize: 15, fontWeight: "900" }}>
-        ⚡
-      </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ alignItems: "center", gap: 28, paddingRight: 24 }}
-      >
-        {["Pizza Run · 195m · 18 min", "Taco Pop-up · 330m · Open 20 min", "Coffee · 210m · Starts 17:20"].map(
-          (item) => (
-            <Text key={item} style={{ color: COLORS.red, fontSize: 12, fontWeight: "900" }}>
-              {item}
-            </Text>
-          ),
-        )}
       </ScrollView>
-      <View style={{ width: 10, backgroundColor: palette.screen }} />
-    </View>
+    </ScreenFrame>
   );
 }
 
-function HomeTabButton({
-  active,
-  label,
-  color,
-  palette,
-  onPress,
-}: {
-  active: boolean;
-  label: string;
-  color: string;
-  palette: (typeof themeTokens)[ThemeName];
-  onPress: () => void;
-}) {
+function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        paddingHorizontal: 10,
-        paddingVertical: 8,
-        borderBottomWidth: 2,
-        borderColor: active ? color : "transparent",
-        opacity: pressed ? 0.72 : 1,
-      })}
-    >
-      <Text style={{ color: active ? color : palette.muted, fontSize: 13, fontWeight: "900" }}>
-        {label}
-      </Text>
-    </Pressable>
+    <AppText style={{ color: MT, fontFamily: bodyBold, fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 4 }}>
+      {children}
+    </AppText>
   );
 }
 
-function HomeQuestCard({
-  quest,
-  selected,
-  joined,
-  palette,
-  onPress,
-  onJoin,
-}: {
-  quest: Quest;
-  selected: boolean;
-  joined: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  onPress: () => void;
-  onJoin: () => void;
-}) {
-  const headcount = getQuestHeadcount(quest, joined);
-  const full = headcount >= quest.max && !joined;
-  const passed = isQuestPassed(quest);
-  const dimmed = full || passed;
-  const accent = full ? palette.muted : quest.color;
-
+function Field({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        minHeight: 142,
-        borderRadius: 16,
-        padding: 12,
-        overflow: "hidden",
-        backgroundColor: dimmed ? palette.ghost : palette.surface,
-        borderWidth: 1,
-        borderColor: selected ? quest.color : dimmed ? "rgba(255,255,255,0.05)" : palette.border,
-        opacity: pressed ? 0.82 : dimmed ? 0.78 : 1,
-      })}
-    >
-      <View
-        style={{
-          position: "absolute",
-          left: 0,
-          right: 0,
-          top: 0,
-          height: 3,
-          backgroundColor: accent,
-          opacity: dimmed ? 0.42 : 1,
-        }}
-      />
-
-      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-        <Text style={{ fontSize: 29 }}>{quest.emoji}</Text>
-        {full || passed ? (
-          <View
-            style={{
-              borderRadius: 8,
-              paddingHorizontal: 9,
-              paddingVertical: 4,
-              backgroundColor: palette.surface2,
-              borderWidth: 1,
-              borderColor: palette.border,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text style={{ color: palette.muted, fontSize: 10, fontWeight: "900", letterSpacing: 0.5 }}>
-              {passed ? "PASSED" : "FULL"}
-            </Text>
-          </View>
-        ) : (
-          <View
-            style={{
-              borderRadius: 8,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              backgroundColor: "rgba(0,212,170,0.1)",
-              alignSelf: "flex-start",
-            }}
-          >
-            <Text style={{ color: COLORS.teal, fontSize: 10, fontWeight: "900" }}>▶ {quest.time}</Text>
-          </View>
-        )}
-      </View>
-
-      <Text
-        numberOfLines={1}
-        style={{ color: dimmed ? palette.muted : palette.text, fontSize: 18, fontWeight: "900" }}
-      >
-        {quest.title}
-      </Text>
-      <Text
-        numberOfLines={1}
-        style={{ color: palette.muted, fontSize: 12, fontWeight: "800", marginTop: 2, marginBottom: 9 }}
-      >
-        📍 {quest.place} · {quest.distance}m
-      </Text>
-
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: dimmed ? 0 : 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-          {Array.from({ length: Math.min(quest.max, 5) }).map((_, index) => (
-            <View
-              key={index}
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: index < Math.min(headcount, 5) ? COLORS.orange : palette.surface3,
-                borderWidth: 1,
-                borderColor: index < Math.min(headcount, 5) ? COLORS.orange : palette.border,
-              }}
-            />
-          ))}
-          <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "900", marginLeft: 4 }}>
-            {headcount}/{quest.max}
-          </Text>
-        </View>
-
-        {full || passed ? (
-          <View
-            style={{
-              minHeight: 31,
-              borderRadius: 9,
-              paddingHorizontal: 12,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: palette.surface2,
-            }}
-          >
-            <Text style={{ color: palette.muted, fontSize: 11, fontWeight: "900" }}>
-              Create similar
-            </Text>
-          </View>
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            onPress={onJoin}
-            style={({ pressed }) => ({
-              minHeight: 31,
-              borderRadius: 9,
-              paddingHorizontal: 13,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: joined ? COLORS.teal : COLORS.orange,
-              opacity: pressed ? 0.75 : 1,
-            })}
-          >
-            <Text style={{ color: "white", fontSize: 12, fontWeight: "900" }}>{joined ? "Joined" : "Join"}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {!dimmed && <Energy level={quest.energy} color={quest.color} palette={palette} />}
-    </Pressable>
-  );
-}
-
-function GhostQuestCard({ palette }: { palette: (typeof themeTokens)[ThemeName] }) {
-  return (
-    <View
-      style={{
-        minHeight: 64,
-        borderRadius: 14,
-        paddingHorizontal: 11,
-        paddingVertical: 9,
-        opacity: 0.62,
-        backgroundColor: palette.ghost,
-        borderWidth: 1,
-        borderColor: palette.border,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <Text style={{ fontSize: 20, opacity: 0.42 }}>🚴</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: palette.muted, fontSize: 13, fontWeight: "900" }}>
-            Bike Ride ended 25 min ago
-          </Text>
-          <Text style={{ color: palette.muted2, fontSize: 11, fontWeight: "800", marginTop: 2 }}>
-            5 people · 🔥 · Morning Run 7am →
-          </Text>
-        </View>
-        <View
-          style={{
-            minWidth: 28,
-            minHeight: 25,
-            borderRadius: 8,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: palette.surface2,
-          }}
-        >
-          <Text style={{ color: palette.muted, fontSize: 13 }}>👻</Text>
-        </View>
+    <View>
+      <SectionLabel>{label}</SectionLabel>
+      <View style={{ backgroundColor: S1, borderWidth: 1.5, borderColor: color || "#ffffff12", borderRadius: 9, paddingVertical: 7, paddingHorizontal: 10, marginBottom: 9 }}>
+        <AppText style={{ color: color ? TX : MT, fontSize: 10.5 }}>{value}</AppText>
       </View>
     </View>
   );
 }
 
-function PostQuestModal({
-  visible,
-  palette,
-  title,
-  place,
-  time,
-  tag,
-  distance,
-  maxPeople,
-  emoji,
-  onChangeTitle,
-  onChangeTime,
-  onChangeTag,
-  onChangeMaxPeople,
-  onChangeEmoji,
-  onOpenLocation,
-  onClose,
-  onSubmit,
-}: {
-  visible: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  title: string;
-  place: string;
-  time: string;
-  tag: string;
-  distance: string;
-  maxPeople: string;
-  emoji: string;
-  onChangeTitle: (value: string) => void;
-  onChangeTime: (value: string) => void;
-  onChangeTag: (value: string) => void;
-  onChangeMaxPeople: (value: string) => void;
-  onChangeEmoji: (value: string) => void;
-  onOpenLocation: () => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}) {
-  const canSubmit = title.trim().length > 0 && place.trim().length > 0;
-
+function StepperButton({ label }: { label: string }) {
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={{ flex: 1, justifyContent: "flex-end" }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close post quest"
-          onPress={onClose}
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.52)",
-          }}
-        />
-
-        <View
-          style={{
-            maxHeight: "88%",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            paddingTop: 10,
-            backgroundColor: palette.surface,
-            borderWidth: 1,
-            borderColor: palette.border,
-          }}
-        >
-          <View
-            style={{
-              alignSelf: "center",
-              width: 38,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: palette.surface3,
-              marginBottom: 8,
-            }}
-          />
-
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 18 }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 14 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.orange, fontSize: 12, fontWeight: "900" }}>
-                  POST QUEST
-                </Text>
-                <Text style={{ color: palette.text, fontSize: 26, fontWeight: "900" }}>
-                  Create a quest
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onClose}
-                style={({ pressed }) => ({
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: palette.surface2,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text style={{ color: palette.text, fontSize: 22, fontWeight: "900" }}>×</Text>
-              </Pressable>
-            </View>
-
-            <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "900", marginBottom: 8 }}>
-              Icon
-            </Text>
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-              {QUEST_EMOJI_OPTIONS.map((option) => {
-                const selected = option === emoji;
-
-                return (
-                  <Pressable
-                    key={option}
-                    accessibilityRole="button"
-                    onPress={() => onChangeEmoji(option)}
-                    style={({ pressed }) => ({
-                      width: 44,
-                      height: 44,
-                      borderRadius: 15,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: selected ? COLORS.orange : palette.surface2,
-                      borderWidth: 1,
-                      borderColor: selected ? COLORS.orange : palette.border,
-                      opacity: pressed ? 0.72 : 1,
-                    })}
-                  >
-                    <Text style={{ fontSize: 24 }}>{option}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <FormField
-              label="Quest name"
-              value={title}
-              onChangeText={onChangeTitle}
-              placeholder="Evening snacks"
-              palette={palette}
-            />
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "900", marginBottom: 7 }}>
-                Location
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onOpenLocation}
-                style={({ pressed }) => ({
-                  minHeight: 58,
-                  borderRadius: 15,
-                  paddingHorizontal: 13,
-                  paddingVertical: 10,
-                  justifyContent: "center",
-                  backgroundColor: palette.surface2,
-                  borderWidth: 1,
-                  borderColor: place ? COLORS.teal : palette.border,
-                  opacity: pressed ? 0.76 : 1,
-                })}
-              >
-                <Text style={{ color: place ? palette.text : palette.muted2, fontSize: 16, fontWeight: "900" }}>
-                  {place || "Choose on map"}
-                </Text>
-                <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "800", marginTop: 3 }}>
-                  {distance ? `${distance}m from you` : "Distance will be calculated automatically"}
-                </Text>
-              </Pressable>
-            </View>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <View style={{ flex: 1 }}>
-                <FormField
-                  label="Time"
-                  value={time}
-                  onChangeText={onChangeTime}
-                  placeholder="Open now"
-                  palette={palette}
-                />
-              </View>
-              <View style={{ flex: 0.75 }}>
-                <FormField
-                  label="Max people"
-                  value={maxPeople}
-                  onChangeText={onChangeMaxPeople}
-                  placeholder="4"
-                  keyboardType="number-pad"
-                  palette={palette}
-                />
-              </View>
-            </View>
-            <FormField
-              label="Tag"
-              value={tag}
-              onChangeText={onChangeTag}
-              placeholder="FOOD"
-              autoCapitalize="characters"
-              maxLength={12}
-              palette={palette}
-            />
-
-            <Pressable
-              accessibilityRole="button"
-              disabled={!canSubmit}
-              onPress={onSubmit}
-              style={({ pressed }) => ({
-                minHeight: 52,
-                borderRadius: 17,
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: 6,
-                backgroundColor: canSubmit ? COLORS.orange : palette.surface3,
-                opacity: pressed ? 0.76 : 1,
-              })}
-            >
-              <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>
-                Create Quest
-              </Text>
-            </Pressable>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
-  );
-}
-
-function LocationPickerModal({
-  visible,
-  palette,
-  selectedLocation,
-  onSelect,
-  onClose,
-}: {
-  visible: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  selectedLocation: LocationOption | null;
-  onSelect: (location: LocationOption) => void;
-  onClose: () => void;
-}) {
-  const [query, setQuery] = useState(selectedLocation?.name ?? "");
-  const [previewLocation, setPreviewLocation] = useState<LocationOption>(
-    selectedLocation ?? LOCATION_OPTIONS[0],
-  );
-
-  useEffect(() => {
-    if (visible) {
-      setQuery(selectedLocation?.name ?? "");
-      setPreviewLocation(selectedLocation ?? LOCATION_OPTIONS[0]);
-    }
-  }, [selectedLocation, visible]);
-
-  const filteredLocations = LOCATION_OPTIONS.filter((location) => {
-    const search = `${location.name} ${location.detail}`.toLowerCase();
-    return search.includes(query.trim().toLowerCase());
-  });
-  const visibleLocations = filteredLocations.length > 0 ? filteredLocations : LOCATION_OPTIONS;
-  const distance = getDistanceMeters(VIEWER_LOCATION, previewLocation);
-  const mapQuery = encodeURIComponent(`${previewLocation.name}, ${previewLocation.detail}`);
-  const mapHtml = `
-    <!doctype html>
-    <html>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-          html, body, iframe { margin: 0; width: 100%; height: 100%; border: 0; background: #07070f; }
-        </style>
-      </head>
-      <body>
-        <iframe src="https://www.google.com/maps?q=${mapQuery}&output=embed"></iframe>
-      </body>
-    </html>
-  `;
-
-  return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.52)" }}>
-        <View
-          style={{
-            maxHeight: "90%",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
-            paddingTop: 10,
-            backgroundColor: palette.surface,
-            borderWidth: 1,
-            borderColor: palette.border,
-            overflow: "hidden",
-          }}
-        >
-          <View
-            style={{
-              alignSelf: "center",
-              width: 38,
-              height: 4,
-              borderRadius: 2,
-              backgroundColor: palette.surface3,
-              marginBottom: 8,
-            }}
-          />
-
-          <View style={{ paddingHorizontal: 16, paddingBottom: 14 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: COLORS.teal, fontSize: 12, fontWeight: "900" }}>
-                  LOCATION
-                </Text>
-                <Text style={{ color: palette.text, fontSize: 25, fontWeight: "900" }}>
-                  Pick a place
-                </Text>
-              </View>
-              <Pressable
-                accessibilityRole="button"
-                onPress={onClose}
-                style={({ pressed }) => ({
-                  width: 42,
-                  height: 42,
-                  borderRadius: 21,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: palette.surface2,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <Text style={{ color: palette.text, fontSize: 22, fontWeight: "900" }}>×</Text>
-              </Pressable>
-            </View>
-
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Search Google Maps"
-              placeholderTextColor={palette.muted2}
-              style={{
-                minHeight: 48,
-                borderRadius: 15,
-                paddingHorizontal: 13,
-                color: palette.text,
-                backgroundColor: palette.surface2,
-                borderWidth: 1,
-                borderColor: palette.border,
-                fontSize: 16,
-                fontWeight: "800",
-              }}
-            />
-          </View>
-
-          <View style={{ height: 230, backgroundColor: palette.surface2 }}>
-            <WebView
-              originWhitelist={["*"]}
-              source={{ html: mapHtml }}
-              javaScriptEnabled
-              domStorageEnabled
-              setSupportMultipleWindows={false}
-              style={{ backgroundColor: palette.surface2 }}
-            />
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingVertical: 12 }}
-          >
-            {visibleLocations.map((location) => {
-              const selected = location.name === previewLocation.name;
-              const optionDistance = getDistanceMeters(VIEWER_LOCATION, location);
-
-              return (
-                <Pressable
-                  key={location.name}
-                  accessibilityRole="button"
-                  onPress={() => {
-                    setPreviewLocation(location);
-                    setQuery(location.name);
-                  }}
-                  style={({ pressed }) => ({
-                    width: 178,
-                    borderRadius: 16,
-                    padding: 11,
-                    backgroundColor: selected ? "rgba(0,212,170,0.16)" : palette.surface2,
-                    borderWidth: 1,
-                    borderColor: selected ? COLORS.teal : palette.border,
-                    opacity: pressed ? 0.76 : 1,
-                  })}
-                >
-                  <Text numberOfLines={1} style={{ color: palette.text, fontSize: 15, fontWeight: "900" }}>
-                    {location.name}
-                  </Text>
-                  <Text numberOfLines={1} style={{ color: palette.muted, fontSize: 12, fontWeight: "800" }}>
-                    {location.detail}
-                  </Text>
-                  <Text style={{ color: COLORS.teal, fontSize: 12, fontWeight: "900", marginTop: 7 }}>
-                    {optionDistance}m away
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-
-          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => onSelect(previewLocation)}
-              style={({ pressed }) => ({
-                minHeight: 52,
-                borderRadius: 17,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: COLORS.orange,
-                opacity: pressed ? 0.76 : 1,
-              })}
-            >
-              <Text style={{ color: "white", fontSize: 17, fontWeight: "900" }}>
-                Use {previewLocation.name} · {distance}m
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function FormField({
-  label,
-  value,
-  placeholder,
-  palette,
-  keyboardType,
-  autoCapitalize,
-  maxLength,
-  onChangeText,
-}: {
-  label: string;
-  value: string;
-  placeholder: string;
-  palette: (typeof themeTokens)[ThemeName];
-  keyboardType?: "default" | "number-pad";
-  autoCapitalize?: "none" | "sentences" | "words" | "characters";
-  maxLength?: number;
-  onChangeText: (value: string) => void;
-}) {
-  return (
-    <View style={{ marginBottom: 12 }}>
-      <Text style={{ color: palette.muted, fontSize: 12, fontWeight: "900", marginBottom: 7 }}>
-        {label}
-      </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={palette.muted2}
-        keyboardType={keyboardType}
-        autoCapitalize={autoCapitalize}
-        maxLength={maxLength}
-        style={{
-          minHeight: 48,
-          borderRadius: 15,
-          paddingHorizontal: 13,
-          color: palette.text,
-          backgroundColor: palette.surface2,
-          borderWidth: 1,
-          borderColor: palette.border,
-          fontSize: 16,
-          fontWeight: "800",
-        }}
-      />
+    <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: S1, borderWidth: 1.5, borderColor: "#ffffff12", alignItems: "center", justifyContent: "center" }}>
+      <AppText style={{ color: TX, fontFamily: bodyBold, fontSize: 16 }}>{label}</AppText>
     </View>
   );
 }
 
-function CircleButton({
-  label,
-  color,
-  palette,
-  onPress,
-}: {
-  label: string;
-  color: string;
-  palette: (typeof themeTokens)[ThemeName];
-  onPress?: () => void;
-}) {
+function Badge({ text, color, emoji }: { text: string; color: string; emoji: string }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        width: 42,
-        height: 42,
-        borderRadius: 21,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: palette.border,
-        opacity: pressed ? 0.72 : 1,
-      })}
-    >
-      <Text style={{ color, fontSize: 22, fontWeight: "900" }}>{label}</Text>
-    </Pressable>
-  );
-}
-
-function Radar({
-  quests,
-  selectedId,
-  onSelect,
-  palette,
-  size,
-  spinStyle,
-}: {
-  quests: Quest[];
-  selectedId: string;
-  onSelect: (id: string) => void;
-  palette: (typeof themeTokens)[ThemeName];
-  size: number;
-  spinStyle: object;
-}) {
-  return (
-    <View style={{ width: size, height: size }}>
-      <Svg width={size} height={size} viewBox="0 0 280 280">
-        <Defs>
-          <RadialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor={COLORS.orange} stopOpacity="0.23" />
-            <Stop offset="44%" stopColor={COLORS.orange} stopOpacity="0.08" />
-            <Stop offset="100%" stopColor={palette.screen} stopOpacity="0" />
-          </RadialGradient>
-        </Defs>
-        <Circle cx="140" cy="140" r="132" fill="url(#radarGlow)" />
-        {[43, 78, 112, 136].map((radius, index) => (
-          <Circle
-            key={radius}
-            cx="140"
-            cy="140"
-            r={radius}
-            fill="none"
-            stroke={index === 0 ? "rgba(255,107,43,0.26)" : palette.radarRing}
-            strokeWidth={index === 0 ? 1.5 : 1}
-            strokeDasharray={index === 0 ? undefined : "5 7"}
-          />
-        ))}
-        <Line x1="140" y1="10" x2="140" y2="270" stroke={palette.radarAxis} strokeWidth="1" />
-        <Line x1="10" y1="140" x2="270" y2="140" stroke={palette.radarAxis} strokeWidth="1" />
-        {["100m", "500m", "1km", "2km"].map((label, index) => (
-          <SvgText
-            key={label}
-            x="145"
-            y={140 - [43, 78, 112, 136][index] + 10}
-            fill={palette.radarLabel}
-            fillOpacity="0.92"
-            fontSize="9"
-          >
-            {label}
-          </SvgText>
-        ))}
-        {quests.map((quest) => {
-          const radians = (quest.angle * Math.PI) / 180;
-          const x = 140 + quest.radius * Math.sin(radians);
-          const y = 140 - quest.radius * Math.cos(radians);
-          const selected = quest.id === selectedId;
-
-          return (
-            <G key={quest.id}>
-              <Circle
-                onPress={() => onSelect(quest.id)}
-                cx={x}
-                cy={y}
-                r={selected ? 19 : 16}
-                fill={quest.color}
-                fillOpacity={selected ? 0.18 : 0.11}
-                stroke={quest.color}
-                strokeOpacity={0.45}
-                strokeWidth={selected ? 2 : 1.4}
-              />
-              <Circle
-                onPress={() => onSelect(quest.id)}
-                cx={x}
-                cy={y}
-                r={selected ? 10.5 : 9}
-                fill={palette.dotCore}
-                stroke={quest.color}
-                strokeWidth="2"
-              />
-              <SvgText
-                onPress={() => onSelect(quest.id)}
-                x={x}
-                y={y + 4}
-                textAnchor="middle"
-                fontSize="12"
-              >
-                {quest.emoji}
-              </SvgText>
-            </G>
-          );
-        })}
-        <Circle cx="140" cy="140" r="6" fill={COLORS.orange} />
-        <Circle cx="140" cy="140" r="18" fill={COLORS.orange} fillOpacity="0.15" />
-        <Circle cx="140" cy="140" r="12" fill="none" stroke={palette.muted} strokeOpacity="0.55" strokeWidth="2" />
-      </Svg>
-
-      {quests.map((quest) => {
-        const radians = (quest.angle * Math.PI) / 180;
-        const x = ((140 + quest.radius * Math.sin(radians)) / 280) * size;
-        const y = ((140 - quest.radius * Math.cos(radians)) / 280) * size;
-
-        return (
-          <Pressable
-            key={`${quest.id}-touch`}
-            accessibilityRole="button"
-            accessibilityLabel={`Select ${quest.title}`}
-            onPress={() => onSelect(quest.id)}
-            style={({ pressed }) => ({
-              position: "absolute",
-              left: x - 24,
-              top: y - 24,
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              zIndex: 2,
-              backgroundColor: pressed ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.001)",
-            })}
-          />
-        );
-      })}
-
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          {
-            position: "absolute",
-            left: 0,
-            top: 0,
-            width: size,
-            height: size,
-          },
-          spinStyle,
-        ]}
-      >
-        <View
-          style={{
-            position: "absolute",
-            left: size / 2 - 1,
-            top: 14,
-            width: 2,
-            height: size / 2 - 14,
-            backgroundColor: "rgba(255,107,43,0.36)",
-          }}
-        />
-      </Animated.View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: `${color}18`, borderWidth: 1, borderColor: `${color}40`, borderRadius: 20, paddingVertical: 2, paddingHorizontal: 7 }}>
+      <AppText style={{ fontSize: 9 }}>{emoji}</AppText>
+      <AppText style={{ color, fontFamily: bodyBold, fontSize: 8 }}>{text}</AppText>
     </View>
-  );
-}
-
-function SelectedQuest({
-  quest,
-  joined,
-  palette,
-  onJoin,
-}: {
-  quest: Quest;
-  joined: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  onJoin: () => void;
-}) {
-  const headcount = getQuestHeadcount(quest, joined);
-  const full = headcount >= quest.max && !joined;
-
-  return (
-    <View
-      style={{
-        marginHorizontal: 14,
-        padding: 14,
-        borderRadius: 22,
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: quest.color,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View
-          style={{
-            width: 54,
-            height: 54,
-            borderRadius: 18,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: palette.surface2,
-            borderWidth: 1,
-            borderColor: palette.border,
-          }}
-        >
-          <Text style={{ fontSize: 28 }}>{quest.emoji}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: quest.color, fontSize: 12, fontWeight: "900" }}>{quest.tag}</Text>
-          <Text style={{ color: palette.text, fontSize: 27, fontWeight: "900", letterSpacing: -1 }}>
-            {quest.title}
-          </Text>
-          <Text style={{ color: palette.muted, fontSize: 14, fontWeight: "800" }}>
-            ⌖ {quest.place}
-          </Text>
-        </View>
-      </View>
-
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 14 }}>
-        <Stat label={`${quest.distance}m`} icon="↗" palette={palette} />
-        <Stat label={`${headcount}/${quest.max}`} icon="♙" palette={palette} />
-        <Stat label={quest.time} icon="◷" palette={palette} />
-      </View>
-
-      <View style={{ marginTop: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <Energy level={quest.energy} color={quest.color} palette={palette} />
-        <Pressable
-          accessibilityRole="button"
-          disabled={full}
-          onPress={onJoin}
-          style={({ pressed }) => ({
-            minWidth: 104,
-            minHeight: 50,
-            borderRadius: 17,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: joined ? COLORS.teal : full ? palette.surface3 : quest.color,
-            opacity: pressed ? 0.76 : 1,
-          })}
-        >
-          <Text style={{ color: "white", fontSize: 20, fontWeight: "900" }}>
-            {joined ? "Joined" : full ? "Full" : "Join"}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-function QuestRow({
-  quest,
-  selected,
-  joined,
-  palette,
-  onPress,
-  onJoin,
-}: {
-  quest: Quest;
-  selected: boolean;
-  joined: boolean;
-  palette: (typeof themeTokens)[ThemeName];
-  onPress: () => void;
-  onJoin: () => void;
-}) {
-  const headcount = getQuestHeadcount(quest, joined);
-  const full = headcount >= quest.max && !joined;
-
-  return (
-    <View
-      style={{
-        minHeight: 72,
-        borderRadius: 19,
-        padding: 10,
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        backgroundColor: palette.surface,
-        borderWidth: 1,
-        borderColor: selected ? quest.color : palette.border,
-        borderLeftWidth: selected ? 4 : 1,
-      }}
-    >
-      <Pressable onPress={onPress} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 15,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: palette.surface2,
-          }}
-        >
-          <Text style={{ fontSize: 25 }}>{quest.emoji}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text numberOfLines={1} style={{ color: palette.text, fontSize: 18, fontWeight: "900" }}>
-            {quest.title}
-          </Text>
-          <Text style={{ color: quest.color, fontSize: 13, fontWeight: "900" }}>{quest.tag}</Text>
-        </View>
-      </Pressable>
-
-      <Text style={{ color: palette.muted, fontSize: 15, fontWeight: "900" }}>{quest.distance}m</Text>
-      <Pressable
-        accessibilityRole="button"
-        disabled={full}
-        onPress={onJoin}
-        style={({ pressed }) => ({
-          minWidth: 66,
-          minHeight: 42,
-          borderRadius: 14,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: joined ? COLORS.teal : full ? palette.surface3 : quest.color,
-          opacity: pressed ? 0.75 : 1,
-        })}
-      >
-        <Text style={{ color: "white", fontWeight: "900" }}>{joined ? "In" : full ? "Full" : "Join"}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-function Stat({
-  label,
-  icon,
-  palette,
-}: {
-  label: string;
-  icon: string;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        minHeight: 38,
-        borderRadius: 13,
-        backgroundColor: palette.cardWash,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 5,
-      }}
-    >
-      <Text style={{ color: palette.textSoft, fontSize: 18, fontWeight: "900" }}>{icon}</Text>
-      <Text style={{ color: palette.textSoft, fontSize: 15, fontWeight: "900" }}>{label}</Text>
-    </View>
-  );
-}
-
-function Energy({
-  level,
-  color,
-  palette,
-}: {
-  level: number;
-  color: string;
-  palette: (typeof themeTokens)[ThemeName];
-}) {
-  const label = level >= 4 ? "Hot" : level >= 3 ? "High" : level >= 2 ? "Med" : "Low";
-
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-      {[1, 2, 3, 4].map((step) => (
-        <View
-          key={step}
-          style={{
-            width: 18,
-            height: 5,
-            borderRadius: 3,
-            backgroundColor: step <= level ? color : palette.surface3,
-          }}
-        />
-      ))}
-      <Text style={{ marginLeft: 5, color: palette.muted, fontWeight: "900" }}>{label}</Text>
-    </View>
-  );
-}
-
-function ActionButton({
-  label,
-  icon,
-  color,
-  disabled,
-  onPress,
-}: {
-  label: string;
-  icon: string;
-  color: string;
-  disabled?: boolean;
-  onPress?: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        minHeight: 48,
-        borderRadius: 15,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "row",
-        gap: 7,
-        backgroundColor: color,
-        opacity: disabled ? 0.68 : pressed ? 0.76 : 1,
-      })}
-    >
-      <Text style={{ color: "white", fontSize: 18, fontWeight: "900" }}>{icon}</Text>
-      <Text style={{ color: "white", fontSize: 15, fontWeight: "900" }}>{label}</Text>
-    </Pressable>
   );
 }
